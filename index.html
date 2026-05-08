@@ -111,7 +111,7 @@ tr:hover td { background: #1c2128; }
       <th>Faithfully Rounded<span class="info-btn">?<span class="tooltip">Result is within 1.0 ULP of the exact value. The result is one of the two doubles adjacent to the exact value.</span></span></th>
       <th>Accuracy<span class="info-btn">?<span class="tooltip">Accuracy score = 100 / (1 + mean ULP). Perfect accuracy = 100. Every ULP of error counts: mean ULP 0.1 = 90.9, mean ULP 0.5 = 66.7, mean ULP 1.0 = 50. Large errors devastate the score.</span></span></th>
       <th>Ops/sec</th>
-      <th>Perf Bonus<span class="info-btn">?<span class="tooltip">Performance bonus = 20 &times; (ops/sec) / 500M, capped at 20. Rewards throughput but capped so speed can't compensate for inaccuracy.</span></span></th>
+      <th>Perf Bonus<span class="info-btn">?<span class="tooltip">Performance bonus = 20 &times; (ops/sec) / 1000M, capped at 20. Rewards throughput but capped so speed can't compensate for inaccuracy.</span></span></th>
       <th>Total<span class="info-btn">?<span class="tooltip">Total = Accuracy + Perf Bonus (max 120). Accuracy dominates (0-100) while performance is a secondary bonus (0-20). Overall score is the geometric mean across all functions.</span></span></th>
     </tr>
   </thead>
