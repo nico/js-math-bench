@@ -219,7 +219,6 @@ function runAccuracyTest(fnName, testData) {
     worstInput,
     worstExpected,
     worstComputed,
-    accuracyScore: count > 0 ? (correctlyRounded / count) * 100 : 0,
   };
 }
 
@@ -285,7 +284,7 @@ function computeOverallScore(results) {
   let logSum = 0;
   let count = 0;
   for (const r of results) {
-    const total = r.accuracy.accuracyScore + r.perf.perfBonus;
+    const total = r.accuracy.correctlyRoundedPct + r.perf.perfBonus;
     if (total > 0) {
       logSum += Math.log(total);
       count++;

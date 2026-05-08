@@ -31,11 +31,10 @@ async function main() {
   });
 
   // Print results table
-  console.log('\n' + '='.repeat(110));
+  console.log('\n' + '='.repeat(100));
   console.log(
     'Function'.padEnd(14) +
-    'Accuracy'.padStart(10) +
-    'Max ULP'.padStart(12) +
+    'Max ULP'.padStart(10) +
     'Mean ULP'.padStart(12) +
     '% CR'.padStart(8) +
     '% FR'.padStart(8) +
@@ -43,12 +42,12 @@ async function main() {
     'Perf+'.padStart(8) +
     'Total'.padStart(8)
   );
-  console.log('-'.repeat(110));
+  console.log('-'.repeat(100));
 
   for (const r of results) {
     const a = r.accuracy;
     const p = r.perf;
-    const total = a.accuracyScore + p.perfBonus;
+    const total = a.correctlyRoundedPct + p.perfBonus;
     const maxUlp = a.maxUlp === Infinity ? 'Inf' : a.maxUlp.toFixed(2);
     const opsStr = p.avgOpsPerSec >= 1e9 ? (p.avgOpsPerSec / 1e9).toFixed(1) + 'B'
                  : p.avgOpsPerSec >= 1e6 ? (p.avgOpsPerSec / 1e6).toFixed(1) + 'M'
@@ -57,8 +56,7 @@ async function main() {
 
     console.log(
       `Math.${r.fn}`.padEnd(14) +
-      a.accuracyScore.toFixed(1).padStart(10) +
-      maxUlp.padStart(12) +
+      maxUlp.padStart(10) +
       a.meanUlp.toFixed(4).padStart(12) +
       (a.correctlyRoundedPct.toFixed(1) + '%').padStart(8) +
       (a.faithfullyRoundedPct.toFixed(1) + '%').padStart(8) +
@@ -75,7 +73,7 @@ async function main() {
     }
   }
 
-  console.log('='.repeat(110));
+  console.log('='.repeat(100));
   const overallScore = computeOverallScore(results);
   console.log(`\nOverall Score: ${overallScore.toFixed(1)}`);
 }
