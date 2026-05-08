@@ -229,7 +229,12 @@ function runPerfTest(fnName) {
   const fn = Math[fnName];
   const results = {};
 
+  const now = typeof performance !== 'undefined'
+    ? () => performance.now() : () => Date.now();
+
   for (const [setName, inputs] of Object.entries(inputSets)) {
+    const N = isBinary ? inputs.a.length : inputs.length;
+
     // Warm up
     if (isBinary) {
       for (let i = 0; i < 1000; i++) fn(inputs.a[i], inputs.b[i]);
@@ -237,30 +242,35 @@ function runPerfTest(fnName) {
       for (let i = 0; i < 1000; i++) fn(inputs[i]);
     }
 
-    // Time multiple runs, take median
-    const timings = [];
-    const N = isBinary ? inputs.a.length : inputs.length;
-    const RUNS = 5;
+    // Run for at least MIN_TIME_MS, looping over the input array.
+    // Collect per-pass timings for 3 separate measurement rounds, take median.
+    const MIN_TIME_MS = 10;
+    const ROUNDS = 3;
+    const opsPerSecSamples = [];
 
-    for (let r = 0; r < RUNS; r++) {
+    for (let r = 0; r < ROUNDS; r++) {
+      let totalOps = 0;
       let dummy = 0;
-      const start = typeof performance !== 'undefined' ? performance.now() : Date.now();
-      if (isBinary) {
-        const a = inputs.a, b = inputs.b;
-        for (let i = 0; i < N; i++) dummy += fn(a[i], b[i]);
-      } else {
-        for (let i = 0; i < N; i++) dummy += fn(inputs[i]);
+      const deadline = now() + MIN_TIME_MS;
+      const start = now();
+      while (now() < deadline) {
+        if (isBinary) {
+          const a = inputs.a, b = inputs.b;
+          for (let i = 0; i < N; i++) dummy += fn(a[i], b[i]);
+        } else {
+          for (let i = 0; i < N; i++) dummy += fn(inputs[i]);
+        }
+        totalOps += N;
       }
-      const end = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const elapsed = now() - start;
       // Use dummy to prevent dead-code elimination
       if (dummy !== dummy + 1) void 0;
-      timings.push(end - start);
+      opsPerSecSamples.push((totalOps / elapsed) * 1000);
     }
 
-    timings.sort((a, b) => a - b);
-    const medianMs = timings[Math.floor(RUNS / 2)];
-    const opsPerSec = medianMs > 0 ? (N / medianMs) * 1000 : Infinity;
-    results[setName] = { medianMs, opsPerSec, n: N };
+    opsPerSecSamples.sort((a, b) => a - b);
+    const opsPerSec = opsPerSecSamples[Math.floor(ROUNDS / 2)];
+    results[setName] = { opsPerSec, n: N };
   }
 
   // Overall ops/sec: average across sets
