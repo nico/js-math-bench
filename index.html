@@ -98,7 +98,7 @@ tr:hover td { background: #1c2128; }
   <thead>
     <tr>
       <th>Function</th>
-      <th>Max ULP</th>
+      <th>Max ULP<span class="info-btn">?<span class="tooltip">ULP = Unit in the Last Place, the gap between two adjacent representable doubles near the exact result. A ULP error of 0 means the result is exact; 0.5 means halfway to the next double (correctly rounded); 1.0 means off by one representable value (faithfully rounded); >1 means inaccurate. Hover a cell to see the worst-case input, expected value, and actual value.</span></span></th>
       <th>Mean ULP</th>
       <th>Correctly Rounded<span class="info-btn">?<span class="tooltip">Percentage of test inputs where the result is within 0.5 ULP of the exact value, meaning the implementation returned the closest representable double. This is the primary benchmark score.</span></span></th>
       <th>Faithfully Rounded<span class="info-btn">?<span class="tooltip">Result is within 1.0 ULP of the exact value. The result is one of the two doubles adjacent to the exact value.</span></span></th>
