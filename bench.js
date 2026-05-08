@@ -294,7 +294,8 @@ function computeOverallScore(results) {
   let logSum = 0;
   let count = 0;
   for (const r of results) {
-    const total = r.accuracy.correctlyRoundedPct + r.perf.perfBonus;
+    const accuracyScore = 100 / (1 + r.accuracy.meanUlp);
+    const total = accuracyScore + r.perf.perfBonus;
     if (total > 0) {
       logSum += Math.log(total);
       count++;

@@ -107,11 +107,12 @@ tr:hover td { background: #1c2128; }
       <th>Function</th>
       <th>Max ULP<span class="info-btn">?<span class="tooltip">ULP = Unit in the Last Place, the gap between two adjacent representable doubles near the exact result. A ULP error of 0 means the result is exact; 0.5 means halfway to the next double (correctly rounded); 1.0 means off by one representable value (faithfully rounded); >1 means inaccurate. Hover a cell to see the worst-case input, expected value, and actual value.</span></span></th>
       <th>Mean ULP</th>
-      <th>Correctly Rounded<span class="info-btn">?<span class="tooltip">Percentage of test inputs where the result is within 0.5 ULP of the exact value, meaning the implementation returned the closest representable double. This is the primary benchmark score.</span></span></th>
+      <th>Correctly Rounded<span class="info-btn">?<span class="tooltip">Percentage of test inputs where the result is within 0.5 ULP of the exact value, meaning the implementation returned the closest representable double.</span></span></th>
       <th>Faithfully Rounded<span class="info-btn">?<span class="tooltip">Result is within 1.0 ULP of the exact value. The result is one of the two doubles adjacent to the exact value.</span></span></th>
+      <th>Accuracy<span class="info-btn">?<span class="tooltip">Accuracy score = 100 / (1 + mean ULP). Perfect accuracy = 100. Every ULP of error counts: mean ULP 0.1 = 90.9, mean ULP 0.5 = 66.7, mean ULP 1.0 = 50. Large errors devastate the score.</span></span></th>
       <th>Ops/sec</th>
-      <th>Perf Bonus</th>
-      <th>Total Score</th>
+      <th>Perf Bonus<span class="info-btn">?<span class="tooltip">Performance bonus = 20 &times; (ops/sec) / 500M, capped at 20. Rewards throughput but capped so speed can't compensate for inaccuracy.</span></span></th>
+      <th>Total<span class="info-btn">?<span class="tooltip">Total = Accuracy + Perf Bonus (max 120). Accuracy dominates (0-100) while performance is a secondary bonus (0-20). Overall score is the geometric mean across all functions.</span></span></th>
     </tr>
   </thead>
   <tbody id="results-body"></tbody>
@@ -191,7 +192,8 @@ async function startBenchmark() {
       completed++;
       const a = result.accuracy;
       const p = result.perf;
-      const totalScore = a.correctlyRoundedPct + p.perfBonus;
+      const accuracyScore = 100 / (1 + a.meanUlp);
+      const totalScore = accuracyScore + p.perfBonus;
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>Math.${fnName}</td>
@@ -199,6 +201,7 @@ async function startBenchmark() {
         <td class="${ulpClass(a.meanUlp)}">${formatNum(a.meanUlp, 4)}</td>
         <td class="${scoreColor(a.correctlyRoundedPct)} score-cell">${a.correctlyRoundedPct.toFixed(1)}%</td>
         <td class="${scoreColor(a.faithfullyRoundedPct)}">${a.faithfullyRoundedPct.toFixed(1)}%</td>
+        <td class="${scoreColor(accuracyScore)} score-cell">${accuracyScore.toFixed(1)}</td>
         <td>${formatNum(p.avgOpsPerSec)}</td>
         <td>${p.perfBonus.toFixed(1)}</td>
         <td class="score-cell">${totalScore.toFixed(1)}</td>
