@@ -277,8 +277,8 @@ function runPerfTest(fnName) {
   const allOps = Object.values(results).map(r => r.opsPerSec);
   const avgOpsPerSec = allOps.reduce((a, b) => a + b, 0) / allOps.length;
 
-  // Performance bonus: 0-20, based on reference rate of 100M ops/sec
-  const REFERENCE_RATE = 100e6;
+  // Performance bonus: 0-20, based on reference rate of 500M ops/sec
+  const REFERENCE_RATE = 500e6;
   const perfBonus = Math.min(20, 20 * (avgOpsPerSec / REFERENCE_RATE));
 
   return {
