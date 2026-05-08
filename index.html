@@ -140,14 +140,19 @@ function esc(s) {
 }
 
 function formatWorstCase(fnName, a) {
-  const args = Array.isArray(a.worstInput)
-    ? a.worstInput.join(', ')
-    : (a.worstInput || '—');
-  const expr = `Math.${esc(fnName)}(${esc(args)})`;
+  // Convert hex float inputs to decimal for a working JS expression
+  let decArgs;
+  if (Array.isArray(a.worstInput)) {
+    decArgs = a.worstInput.map(h => String(parseHexFloat(h))).join(', ');
+  } else {
+    decArgs = a.worstInput ? String(parseHexFloat(a.worstInput)) : '—';
+  }
+  const hexArgs = Array.isArray(a.worstInput)
+    ? a.worstInput.join(', ') : (a.worstInput || '—');
+  const expr = `Math.${fnName}(${decArgs})`;
   const expected = esc(a.worstExpected);
   const computed = esc(a.worstComputed);
-  const copyText = `Math.${fnName}(${args})`;
-  return `${expr} <span class="copy-btn" onclick="navigator.clipboard.writeText('${copyText.replace(/'/g, "\\'")}');this.textContent='copied!';setTimeout(()=>this.textContent='copy',800)">copy</span>\nExpected: ${expected}\nGot:      ${computed}`;
+  return `${esc(expr)} <span class="copy-btn" onclick="navigator.clipboard.writeText('${expr.replace(/'/g, "\\'")}');this.textContent='copied!';setTimeout(()=>this.textContent='copy',800)">copy</span>\nHex:      Math.${esc(fnName)}(${esc(hexArgs)})\nExpected: ${expected}\nGot:      ${computed}`;
 }
 
 function ulpClass(ulp) {
