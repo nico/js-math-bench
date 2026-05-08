@@ -178,7 +178,8 @@ function runAccuracyTest(fnName, testData) {
   let correctlyRounded = 0;  // <= 0.5 ULP
   let faithfullyRounded = 0; // <= 1.0 ULP
   let worstInput = null;
-  let worstUlpVal = 0;
+  let worstExpected = null;
+  let worstComputed = null;
 
   for (const cat of categories) {
     const cases = testData[cat] || [];
@@ -200,8 +201,9 @@ function runAccuracyTest(fnName, testData) {
       if (ulp <= 1.0) faithfullyRounded++;
       if (ulp > maxUlp || (ulp === Infinity && maxUlp !== Infinity)) {
         maxUlp = ulp;
-        worstUlpVal = ulp;
         worstInput = tc.in;
+        worstExpected = expected;
+        worstComputed = computed;
       }
       count++;
     }
@@ -215,6 +217,8 @@ function runAccuracyTest(fnName, testData) {
     correctlyRoundedPct: count > 0 ? (correctlyRounded / count) * 100 : 0,
     faithfullyRoundedPct: count > 0 ? (faithfullyRounded / count) * 100 : 0,
     worstInput,
+    worstExpected,
+    worstComputed,
     accuracyScore: count > 0 ? (correctlyRounded / count) * 100 : 0,
   };
 }

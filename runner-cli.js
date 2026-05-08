@@ -66,6 +66,13 @@ async function main() {
       p.perfBonus.toFixed(1).padStart(8) +
       total.toFixed(1).padStart(8)
     );
+    if (a.maxUlp > 0) {
+      const input = Array.isArray(a.worstInput) ? a.worstInput.join(', ') : a.worstInput;
+      console.log(
+        ''.padEnd(14) +
+        `  ^ input: ${input}  expected: ${a.worstExpected}  got: ${a.worstComputed}`
+      );
+    }
   }
 
   console.log('='.repeat(110));

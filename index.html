@@ -29,12 +29,14 @@ button:disabled { background: #21262d; color: #484f58; cursor: not-allowed; }
 .overall-score {
   background: #161b22; border: 1px solid #30363d; border-radius: 8px;
   padding: 20px; margin-bottom: 20px; text-align: center; display: none;
+  position: relative; z-index: 0;
 }
 .overall-score .number { font-size: 48px; font-weight: 700; color: #f0f6fc; }
 .overall-score .label { color: #8b949e; font-size: 14px; }
 table {
   width: 100%; border-collapse: collapse; font-size: 13px;
-  background: #161b22; border-radius: 8px; overflow: hidden;
+  background: #161b22; border-radius: 8px; overflow: visible;
+  position: relative; z-index: 1;
 }
 th {
   background: #21262d; color: #8b949e; padding: 10px 12px; text-align: right;
@@ -50,6 +52,30 @@ tr:hover td { background: #1c2128; }
 .score-cell { font-weight: 700; }
 .detail-row td { padding: 4px 12px; font-size: 12px; color: #8b949e; }
 .detail-row td:first-child { padding-left: 24px; }
+.has-tooltip { position: relative; cursor: help; border-bottom: 1px dotted currentColor; }
+.has-tooltip .tooltip {
+  display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  background: #30363d; color: #c9d1d9; padding: 8px 12px; border-radius: 6px;
+  font-size: 12px; white-space: pre; z-index: 10; pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4); margin-bottom: 6px; text-align: left;
+  font-weight: normal; line-height: 1.5;
+}
+.has-tooltip:hover .tooltip { display: block; }
+.info-btn {
+  display: inline-block; width: 15px; height: 15px; border-radius: 50%;
+  background: #30363d; color: #8b949e; font-size: 10px; text-align: center;
+  line-height: 15px; cursor: help; position: relative; vertical-align: middle;
+  margin-left: 4px;
+}
+.info-btn .tooltip {
+  display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  background: #30363d; color: #c9d1d9; padding: 8px 12px; border-radius: 6px;
+  font-size: 12px; white-space: pre; z-index: 10; pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4); margin-bottom: 6px; text-align: left;
+  line-height: 1.5; width: 280px; white-space: normal; text-transform: none;
+  letter-spacing: normal;
+}
+.info-btn:hover .tooltip { display: block; }
 </style>
 </head>
 <body>
@@ -72,11 +98,11 @@ tr:hover td { background: #1c2128; }
   <thead>
     <tr>
       <th>Function</th>
-      <th>Accuracy</th>
+      <th>Accuracy<span class="info-btn">?<span class="tooltip">Percentage of test inputs where the result is correctly rounded (within 0.5 ULP of the exact mathematical value). This is the primary benchmark score.</span></span></th>
       <th>Max ULP</th>
       <th>Mean ULP</th>
-      <th>Correctly Rounded</th>
-      <th>Faithfully Rounded</th>
+      <th>Correctly Rounded<span class="info-btn">?<span class="tooltip">Result is within 0.5 ULP of the exact value. This means the implementation returned the closest representable double.</span></span></th>
+      <th>Faithfully Rounded<span class="info-btn">?<span class="tooltip">Result is within 1.0 ULP of the exact value. The result is one of the two doubles adjacent to the exact value.</span></span></th>
       <th>Ops/sec</th>
       <th>Perf Bonus</th>
       <th>Total Score</th>
@@ -95,12 +121,25 @@ async function loadTestData() {
 }
 
 function formatNum(n, digits) {
-  if (n === Infinity) return '&infin;';
+  if (n === Infinity) return '\u221e';
   if (digits !== undefined) return n.toFixed(digits);
   if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
   if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
   if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
   return n.toFixed(1);
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatWorstCase(a) {
+  const input = Array.isArray(a.worstInput)
+    ? a.worstInput.join(', ')
+    : (a.worstInput || '—');
+  const expected = a.worstExpected;
+  const computed = a.worstComputed;
+  return `Input:    ${esc(input)}\nExpected: ${esc(expected)}\nGot:      ${esc(computed)}`;
 }
 
 function ulpClass(ulp) {
@@ -144,7 +183,7 @@ async function startBenchmark() {
       tr.innerHTML = `
         <td>Math.${fnName}</td>
         <td class="${scoreColor(a.accuracyScore)} score-cell">${a.accuracyScore.toFixed(1)}</td>
-        <td class="${ulpClass(a.maxUlp)}">${formatNum(a.maxUlp, a.maxUlp < 100 ? 2 : 0)}</td>
+        <td class="${ulpClass(a.maxUlp)} has-tooltip">${formatNum(a.maxUlp, a.maxUlp < 100 ? 2 : 0)}<span class="tooltip">${formatWorstCase(a)}</span></td>
         <td class="${ulpClass(a.meanUlp)}">${formatNum(a.meanUlp, 4)}</td>
         <td class="${scoreColor(a.correctlyRoundedPct)}">${a.correctlyRoundedPct.toFixed(1)}%</td>
         <td class="${scoreColor(a.faithfullyRoundedPct)}">${a.faithfullyRoundedPct.toFixed(1)}%</td>
