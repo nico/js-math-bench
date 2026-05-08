@@ -49,6 +49,7 @@ tr:hover td { background: #1c2128; }
 .ulp-good { color: #3fb950; }
 .ulp-ok { color: #d29922; }
 .ulp-bad { color: #f85149; }
+.ulp-terrible { color: #bc8cff; }
 .score-cell { font-weight: 700; }
 .detail-row td { padding: 4px 12px; font-size: 12px; color: #8b949e; }
 .detail-row td:first-child { padding-left: 24px; }
@@ -165,7 +166,8 @@ function ulpClass(ulp) {
 function scoreColor(score) {
   if (score >= 99) return 'ulp-good';
   if (score >= 90) return 'ulp-ok';
-  return 'ulp-bad';
+  if (score >= 50) return 'ulp-bad';
+  return 'ulp-terrible';
 }
 
 async function startBenchmark() {
