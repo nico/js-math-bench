@@ -56,9 +56,10 @@ tr:hover td { background: #1c2128; }
 .has-tooltip .tooltip {
   display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
   background: #30363d; color: #c9d1d9; padding: 8px 12px; border-radius: 6px;
-  font-size: 12px; white-space: pre; z-index: 10; pointer-events: none;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4); margin-bottom: 6px; text-align: left;
-  font-weight: normal; line-height: 1.5;
+  font-size: 12px; white-space: pre; z-index: 10;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4); padding-bottom: 14px; margin-bottom: 0;
+  text-align: left; font-weight: normal; line-height: 1.5; cursor: text;
+  user-select: text;
 }
 .has-tooltip:hover .tooltip { display: block; }
 .info-btn {
