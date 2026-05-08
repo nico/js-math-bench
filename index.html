@@ -77,6 +77,12 @@ tr:hover td { background: #1c2128; }
   letter-spacing: normal;
 }
 .info-btn:hover .tooltip { display: block; }
+.copy-btn {
+  display: inline-block; background: #238636; color: #fff; padding: 1px 8px;
+  border-radius: 4px; font-size: 11px; cursor: pointer; margin-left: 8px;
+  user-select: none; vertical-align: middle;
+}
+.copy-btn:hover { background: #2ea043; }
 </style>
 </head>
 <body>
@@ -133,13 +139,15 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-function formatWorstCase(a) {
-  const input = Array.isArray(a.worstInput)
+function formatWorstCase(fnName, a) {
+  const args = Array.isArray(a.worstInput)
     ? a.worstInput.join(', ')
     : (a.worstInput || '—');
-  const expected = a.worstExpected;
-  const computed = a.worstComputed;
-  return `Input:    ${esc(input)}\nExpected: ${esc(expected)}\nGot:      ${esc(computed)}`;
+  const expr = `Math.${esc(fnName)}(${esc(args)})`;
+  const expected = esc(a.worstExpected);
+  const computed = esc(a.worstComputed);
+  const copyText = `Math.${fnName}(${args})`;
+  return `${expr} <span class="copy-btn" onclick="navigator.clipboard.writeText('${copyText.replace(/'/g, "\\'")}');this.textContent='copied!';setTimeout(()=>this.textContent='copy',800)">copy</span>\nExpected: ${expected}\nGot:      ${computed}`;
 }
 
 function ulpClass(ulp) {
@@ -182,7 +190,7 @@ async function startBenchmark() {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>Math.${fnName}</td>
-        <td class="${ulpClass(a.maxUlp)} has-tooltip">${formatNum(a.maxUlp, a.maxUlp < 100 ? 2 : 0)}<span class="tooltip">${formatWorstCase(a)}</span></td>
+        <td class="${ulpClass(a.maxUlp)} has-tooltip">${formatNum(a.maxUlp, a.maxUlp < 100 ? 2 : 0)}<span class="tooltip">${formatWorstCase(fnName, a)}</span></td>
         <td class="${ulpClass(a.meanUlp)}">${formatNum(a.meanUlp, 4)}</td>
         <td class="${scoreColor(a.correctlyRoundedPct)} score-cell">${a.correctlyRoundedPct.toFixed(1)}%</td>
         <td class="${scoreColor(a.faithfullyRoundedPct)}">${a.faithfullyRoundedPct.toFixed(1)}%</td>
