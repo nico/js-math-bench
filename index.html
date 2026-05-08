@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>js-math-bench</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+  background: #0d1117; color: #c9d1d9; padding: 24px; max-width: 1200px; margin: 0 auto;
+}
+h1 { font-size: 28px; margin-bottom: 4px; color: #f0f6fc; }
+.subtitle { color: #8b949e; margin-bottom: 24px; font-size: 14px; }
+.controls { margin-bottom: 20px; display: flex; gap: 12px; align-items: center; }
+button {
+  background: #238636; color: #fff; border: none; padding: 10px 24px;
+  border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: 600;
+}
+button:hover { background: #2ea043; }
+button:disabled { background: #21262d; color: #484f58; cursor: not-allowed; }
+.progress-bar {
+  flex: 1; height: 8px; background: #21262d; border-radius: 4px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: #238636; width: 0%; transition: width 0.2s;
+}
+.status { color: #8b949e; font-size: 13px; min-width: 200px; text-align: right; }
+.overall-score {
+  background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+  padding: 20px; margin-bottom: 20px; text-align: center; display: none;
+}
+.overall-score .number { font-size: 48px; font-weight: 700; color: #f0f6fc; }
+.overall-score .label { color: #8b949e; font-size: 14px; }
+table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+  background: #161b22; border-radius: 8px; overflow: hidden;
+}
+th {
+  background: #21262d; color: #8b949e; padding: 10px 12px; text-align: right;
+  font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+th:first-child { text-align: left; }
+td { padding: 8px 12px; border-top: 1px solid #21262d; text-align: right; }
+td:first-child { text-align: left; font-weight: 600; color: #f0f6fc; }
+tr:hover td { background: #1c2128; }
+.ulp-good { color: #3fb950; }
+.ulp-ok { color: #d29922; }
+.ulp-bad { color: #f85149; }
+.score-cell { font-weight: 700; }
+.detail-row td { padding: 4px 12px; font-size: 12px; color: #8b949e; }
+.detail-row td:first-child { padding-left: 24px; }
+</style>
+</head>
+<body>
+
+<h1>js-math-bench</h1>
+<p class="subtitle">JavaScript Math function accuracy &amp; performance benchmark</p>
+
+<div class="controls">
+  <button id="run-btn" onclick="startBenchmark()">Run Benchmark</button>
+  <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  <div class="status" id="status">Ready</div>
+</div>
+
+<div class="overall-score" id="overall">
+  <div class="number" id="overall-score">—</div>
+  <div class="label">Overall Score (geometric mean)</div>
+</div>
+
+<table id="results">
+  <thead>
+    <tr>
+      <th>Function</th>
+      <th>Accuracy</th>
+      <th>Max ULP</th>
+      <th>Mean ULP</th>
+      <th>Correctly Rounded</th>
+      <th>Faithfully Rounded</th>
+      <th>Ops/sec</th>
+      <th>Perf Bonus</th>
+      <th>Total Score</th>
+    </tr>
+  </thead>
+  <tbody id="results-body"></tbody>
+</table>
+
+<script src="bench.js"></script>
+<script>
+let testData = null;
+
+async function loadTestData() {
+  const resp = await fetch('test_data.json');
+  testData = await resp.json();
+}
+
+function formatNum(n, digits) {
+  if (n === Infinity) return '&infin;';
+  if (digits !== undefined) return n.toFixed(digits);
+  if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return n.toFixed(1);
+}
+
+function ulpClass(ulp) {
+  if (ulp <= 0.5) return 'ulp-good';
+  if (ulp <= 1.0) return 'ulp-ok';
+  return 'ulp-bad';
+}
+
+function scoreColor(score) {
+  if (score >= 99) return 'ulp-good';
+  if (score >= 90) return 'ulp-ok';
+  return 'ulp-bad';
+}
+
+async function startBenchmark() {
+  if (!testData) {
+    document.getElementById('status').textContent = 'Loading test data...';
+    await loadTestData();
+  }
+
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  const tbody = document.getElementById('results-body');
+  tbody.innerHTML = '';
+  document.getElementById('overall').style.display = 'none';
+
+  let completed = 0;
+  const total = FUNCTIONS.filter(f => testData[f]).length;
+
+  const allResults = await runBenchmark(testData, (fnName, phase, result) => {
+    const pct = ((completed + (phase === 'accuracy' ? 0 : phase === 'perf' ? 0.5 : 1)) / total) * 100;
+    document.getElementById('progress').style.width = pct + '%';
+    document.getElementById('status').textContent = `${fnName}: ${phase}...`;
+
+    if (phase === 'done' && result) {
+      completed++;
+      const a = result.accuracy;
+      const p = result.perf;
+      const totalScore = a.accuracyScore + p.perfBonus;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>Math.${fnName}</td>
+        <td class="${scoreColor(a.accuracyScore)} score-cell">${a.accuracyScore.toFixed(1)}</td>
+        <td class="${ulpClass(a.maxUlp)}">${formatNum(a.maxUlp, a.maxUlp < 100 ? 2 : 0)}</td>
+        <td class="${ulpClass(a.meanUlp)}">${formatNum(a.meanUlp, 4)}</td>
+        <td class="${scoreColor(a.correctlyRoundedPct)}">${a.correctlyRoundedPct.toFixed(1)}%</td>
+        <td class="${scoreColor(a.faithfullyRoundedPct)}">${a.faithfullyRoundedPct.toFixed(1)}%</td>
+        <td>${formatNum(p.avgOpsPerSec)}</td>
+        <td>${p.perfBonus.toFixed(1)}</td>
+        <td class="score-cell">${totalScore.toFixed(1)}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  });
+
+  const overallScore = computeOverallScore(allResults);
+  document.getElementById('overall').style.display = 'block';
+  document.getElementById('overall-score').textContent = overallScore.toFixed(1);
+  document.getElementById('progress').style.width = '100%';
+  document.getElementById('status').textContent = 'Done';
+  btn.disabled = false;
+}
+</script>
+
+</body>
+</html>
