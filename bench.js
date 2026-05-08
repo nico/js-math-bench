@@ -107,11 +107,11 @@ function ulpError(computed, expected) {
   // Expected is zero
   if (expected === 0) {
     if (computed === 0) {
-      // Check sign: -0 vs +0 — we consider this 0 ULP error since
+      // Check sign: -0 vs +0 -- we consider this 0 ULP error since
       // JS Math functions don't always distinguish signed zero
       return 0;
     }
-    // expected is 0 but computed is not — use ULP of smallest denormal
+    // expected is 0 but computed is not -- use ULP of smallest denormal
     return Math.abs(computed) / 5e-324;
   }
   return Math.abs(computed - expected) / ulpOf(expected);
@@ -136,15 +136,15 @@ function generatePerfInputs(fnName, rng) {
 
   if (BINARY_FUNCTIONS.has(fnName)) {
     // For binary functions, generate pairs
-    sets['[0,1]×[0,1]'] = { a: new Float64Array(N), b: new Float64Array(N) };
-    sets['[-10,10]×[-10,10]'] = { a: new Float64Array(N), b: new Float64Array(N) };
+    sets['[0,1]x[0,1]'] = { a: new Float64Array(N), b: new Float64Array(N) };
+    sets['[-10,10]x[-10,10]'] = { a: new Float64Array(N), b: new Float64Array(N) };
     sets['ints [0,1000)'] = { a: new Float64Array(N), b: new Float64Array(N) };
 
     for (let i = 0; i < N; i++) {
-      sets['[0,1]×[0,1]'].a[i] = rng();
-      sets['[0,1]×[0,1]'].b[i] = rng();
-      sets['[-10,10]×[-10,10]'].a[i] = rng() * 20 - 10;
-      sets['[-10,10]×[-10,10]'].b[i] = rng() * 20 - 10;
+      sets['[0,1]x[0,1]'].a[i] = rng();
+      sets['[0,1]x[0,1]'].b[i] = rng();
+      sets['[-10,10]x[-10,10]'].a[i] = rng() * 20 - 10;
+      sets['[-10,10]x[-10,10]'].b[i] = rng() * 20 - 10;
       sets['ints [0,1000)'].a[i] = (rng() * 1000) | 0;
       sets['ints [0,1000)'].b[i] = (rng() * 1000) | 0;
     }
