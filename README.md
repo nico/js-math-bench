@@ -58,7 +58,13 @@ python3 -m http.server 8000
 node runner-cli.js
 ```
 
-Also works with other JS engines (d8, jsc) with minor modifications.
+For other JS engines (d8, jsc, etc.), generate a standalone single-file bundle:
+
+```bash
+node bundle.js > bench-standalone.js
+d8 bench-standalone.js
+jsc bench-standalone.js
+```
 
 ## Regenerating test data
 

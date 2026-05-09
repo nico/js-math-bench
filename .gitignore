@@ -1,3 +1,4 @@
 core-math/
+bench-standalone.js
 *.swp
 *.swo
