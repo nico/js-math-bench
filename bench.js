@@ -222,11 +222,50 @@ function runAccuracyTest(fnName, testData) {
   };
 }
 
+// Run the inner perf loop with a direct Math.xxx() call via a switch.
+// This gives each function its own monomorphic call site, letting the JIT
+// inline the Math builtin. A closure factory doesn't work because V8 shares
+// inline cache feedback across closures from the same factory function.
+function runUnaryLoop(fnName, arr, n) {
+  var d = 0;
+  switch (fnName) {
+    case 'acos':  for (var i = 0; i < n; i++) d += Math.acos(arr[i]); break;
+    case 'acosh': for (var i = 0; i < n; i++) d += Math.acosh(arr[i]); break;
+    case 'asin':  for (var i = 0; i < n; i++) d += Math.asin(arr[i]); break;
+    case 'asinh': for (var i = 0; i < n; i++) d += Math.asinh(arr[i]); break;
+    case 'atan':  for (var i = 0; i < n; i++) d += Math.atan(arr[i]); break;
+    case 'atanh': for (var i = 0; i < n; i++) d += Math.atanh(arr[i]); break;
+    case 'cbrt':  for (var i = 0; i < n; i++) d += Math.cbrt(arr[i]); break;
+    case 'cos':   for (var i = 0; i < n; i++) d += Math.cos(arr[i]); break;
+    case 'cosh':  for (var i = 0; i < n; i++) d += Math.cosh(arr[i]); break;
+    case 'exp':   for (var i = 0; i < n; i++) d += Math.exp(arr[i]); break;
+    case 'expm1': for (var i = 0; i < n; i++) d += Math.expm1(arr[i]); break;
+    case 'log':   for (var i = 0; i < n; i++) d += Math.log(arr[i]); break;
+    case 'log1p': for (var i = 0; i < n; i++) d += Math.log1p(arr[i]); break;
+    case 'log2':  for (var i = 0; i < n; i++) d += Math.log2(arr[i]); break;
+    case 'log10': for (var i = 0; i < n; i++) d += Math.log10(arr[i]); break;
+    case 'sin':   for (var i = 0; i < n; i++) d += Math.sin(arr[i]); break;
+    case 'sinh':  for (var i = 0; i < n; i++) d += Math.sinh(arr[i]); break;
+    case 'sqrt':  for (var i = 0; i < n; i++) d += Math.sqrt(arr[i]); break;
+    case 'tan':   for (var i = 0; i < n; i++) d += Math.tan(arr[i]); break;
+    case 'tanh':  for (var i = 0; i < n; i++) d += Math.tanh(arr[i]); break;
+  }
+  return d;
+}
+
+function runBinaryLoop(fnName, a, b, n) {
+  var d = 0;
+  switch (fnName) {
+    case 'atan2': for (var i = 0; i < n; i++) d += Math.atan2(a[i], b[i]); break;
+    case 'pow':   for (var i = 0; i < n; i++) d += Math.pow(a[i], b[i]); break;
+  }
+  return d;
+}
+
 function runPerfTest(fnName) {
   const rng = mulberry32(0x12345678);
   const inputSets = generatePerfInputs(fnName, rng);
   const isBinary = BINARY_FUNCTIONS.has(fnName);
-  const fn = Math[fnName];
   const results = {};
 
   const now = typeof performance !== 'undefined'
@@ -235,11 +274,10 @@ function runPerfTest(fnName) {
   for (const [setName, inputs] of Object.entries(inputSets)) {
     const N = isBinary ? inputs.a.length : inputs.length;
 
-    // Warm up
-    if (isBinary) {
-      for (let i = 0; i < 1000; i++) fn(inputs.a[i], inputs.b[i]);
-    } else {
-      for (let i = 0; i < 1000; i++) fn(inputs[i]);
+    // Warm up so the JIT compiles the runner
+    for (let w = 0; w < 5; w++) {
+      if (isBinary) runBinaryLoop(fnName, inputs.a, inputs.b, N);
+      else runUnaryLoop(fnName, inputs, N);
     }
 
     // Run for at least MIN_TIME_MS, looping over the input array.
@@ -253,14 +291,16 @@ function runPerfTest(fnName) {
       let dummy = 0;
       const deadline = now() + MIN_TIME_MS;
       const start = now();
-      while (now() < deadline) {
-        if (isBinary) {
-          const a = inputs.a, b = inputs.b;
-          for (let i = 0; i < N; i++) dummy += fn(a[i], b[i]);
-        } else {
-          for (let i = 0; i < N; i++) dummy += fn(inputs[i]);
+      if (isBinary) {
+        while (now() < deadline) {
+          dummy += runBinaryLoop(fnName, inputs.a, inputs.b, N);
+          totalOps += N;
         }
-        totalOps += N;
+      } else {
+        while (now() < deadline) {
+          dummy += runUnaryLoop(fnName, inputs, N);
+          totalOps += N;
+        }
       }
       const elapsed = now() - start;
       // Use dummy to prevent dead-code elimination
