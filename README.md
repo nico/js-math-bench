@@ -66,6 +66,14 @@ d8 bench-standalone.js
 jsc bench-standalone.js
 ```
 
+## Benchmarking system libm (C)
+
+```bash
+node generate-libm-bench.js > bench-libm-data.inc
+cc -O2 -lm bench-libm.c -o bench-libm
+./bench-libm
+```
+
 ## Regenerating test data
 
 The pre-computed `test_data.json` is checked into the repo. To regenerate:
