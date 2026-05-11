@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 const testData = JSON.parse(
-  fs.readFileSync(path.join(__dirname, 'test_data.json'), 'utf8')
+  fs.readFileSync(path.join(__dirname, '..', 'test_data.json'), 'utf8')
 );
 
 const BINARY_FUNCTIONS = new Set(['atan2', 'pow']);

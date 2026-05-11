@@ -1,9 +1,7 @@
 // Benchmarks system libm accuracy and performance.
 // Uses the same test data and scoring as the JS benchmark.
 //
-// Build:
-//   node generate-libm-bench.js > bench-libm-data.inc
-//   cc -O2 -lm bench-libm.c -o bench-libm && ./bench-libm
+// Build: cd c && make && ./bench-libm
 
 #include <math.h>
 #include <stdarg.h>

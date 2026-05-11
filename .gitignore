@@ -1,6 +1,6 @@
 core-math/
 bench-standalone.js
-bench-libm-data.inc
-bench-libm
+c/bench-libm-data.inc
+c/bench-libm
 *.swp
 *.swo

@@ -69,9 +69,7 @@ jsc bench-standalone.js
 ## Benchmarking system libm (C)
 
 ```bash
-node generate-libm-bench.js > bench-libm-data.inc
-cc -O2 -lm bench-libm.c -o bench-libm
-./bench-libm
+cd c && make && ./bench-libm
 ```
 
 ## Regenerating test data
