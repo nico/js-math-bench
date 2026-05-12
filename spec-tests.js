@@ -424,6 +424,32 @@ t('tanh', [INF], 1, 'tanh(+Inf) = 1');
 // If x is -Inf, return -1.
 t('tanh', [NEG_INF], -1, 'tanh(-Inf) = -1');
 
+// == Overflow / underflow boundaries ==
+// Smallest finite argument where the result overflows to +/-Inf.
+// These aren't spec requirements per se, but verify correct overflow behavior.
+
+// exp(709.782712893384) is the last finite result; next double overflows.
+t('exp', [709.7827128933841], INF, 'exp overflows to +Inf');
+t('exp', [709.782712893384], 1.7976931348622732e+308, 'exp last finite result');
+
+// exp(-744) still returns a tiny denormal; next integer underflows.
+// (Exact underflow-to-zero boundary depends on the implementation.)
+
+// cosh and sinh overflow at the same boundary (dominated by exp(x)/2).
+t('cosh', [710.475860073944], INF, 'cosh overflows to +Inf');
+t('cosh', [-710.475860073944], INF, 'cosh(-x) overflows to +Inf');
+t('sinh', [710.475860073944], INF, 'sinh overflows to +Inf');
+t('sinh', [-710.475860073944], NEG_INF, 'sinh overflows to -Inf');
+
+// expm1 overflows at the same point as exp.
+t('expm1', [709.7827128933841], INF, 'expm1 overflows to +Inf');
+
+// pow(2, 1024) is the classic overflow.
+t('pow', [2, 1024], INF, 'pow(2, 1024) = +Inf');
+t('pow', [2, 1023], 8.98846567431158e+307, 'pow(2, 1023) is finite');
+t('pow', [10, 309], INF, 'pow(10, 309) = +Inf');
+t('pow', [10, 308], 1e+308, 'pow(10, 308) is finite');
+
 // --- Run tests ---
 
 function runTests() {
