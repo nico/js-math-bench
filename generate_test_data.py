@@ -105,15 +105,47 @@ def double_to_hex(f):
 
 
 def mpf_to_double(x):
-    """Convert an mpmath mpf to the nearest Python float (correctly rounded)."""
+    """Convert an mpmath mpf to the nearest Python float (correctly rounded).
+
+    Workaround for https://github.com/mpmath/mpmath/issues/1078:
+    mpmath's __float__() rounds to 53 mantissa bits, which is correct for
+    normal doubles but wrong for denormals (which have fewer significant bits).
+    Near-midpoint denormal values can round the wrong way. We fix this by
+    checking the neighboring doubles and picking the closest one.
+    """
     if isinstance(x, mpmath.mpc):
         return float('nan')  # Complex result means undefined for reals
     if mpmath.isnan(x):
         return float('nan')
     if mpmath.isinf(x):
         return float('inf') if x > 0 else float('-inf')
-    # mpmath's float() conversion is correctly rounded
-    return float(x)
+    d = float(x)
+    if not math.isfinite(d) or d == 0.0:
+        return d
+    # The bug only affects denormals (abs(d) < 2^-1022), but float() may
+    # have rounded a denormal result up to the smallest normal, so also
+    # check when abs(d) is exactly 2^-1022.
+    if abs(d) > 2.2250738585072014e-308:
+        return d
+    # Check neighbors to fix potential misrounding
+    bits, = struct.unpack('>Q', struct.pack('>d', d))
+    best = d
+    best_err = abs(x - mpmath.mpf(d))
+    for offset in [-1, 1]:
+        b = bits + offset
+        if b < 0 or b > 0x7FFFFFFFFFFFFFFF:
+            continue
+        candidate = struct.unpack('>d', struct.pack('>Q', b))[0]
+        err = abs(x - mpmath.mpf(candidate))
+        if err < best_err:
+            best = candidate
+            best_err = err
+        elif err == best_err:
+            # Tie: round to even (last bit = 0)
+            cb, = struct.unpack('>Q', struct.pack('>d', candidate))
+            if (cb & 1) == 0:
+                best = candidate
+    return best
 
 
 def parse_hex_float(s):
