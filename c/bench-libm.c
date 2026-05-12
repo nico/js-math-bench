@@ -6,6 +6,7 @@
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
@@ -257,7 +258,32 @@ static void format_ops(double ops, char *buf, int bufsize) {
 
 #define NAME_ENTRY(name) #name,
 
-int main(void) {
+typedef struct {
+    int verbose;
+} Options;
+
+static Options parse_args(int argc, char **argv) {
+    Options opts = {0};
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-v") == 0) {
+            opts.verbose = 1;
+        } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
+            printf("Usage: %s [-v]\n\n"
+                   "Benchmark system libm accuracy and performance.\n\n"
+                   "Options:\n"
+                   "  -v       Show worst-case input details for each function\n"
+                   "  -h       Show this help\n", argv[0]);
+            exit(0);
+        } else {
+            fprintf(stderr, "Unknown option: %s\nTry '%s --help'\n", argv[i], argv[0]);
+            exit(1);
+        }
+    }
+    return opts;
+}
+
+int main(int argc, char **argv) {
+    Options opts = parse_args(argc, argv);
     const char *functions[] = {
         FOR_EACH_FUNCTION(NAME_ENTRY, NAME_ENTRY)
     };
@@ -295,7 +321,7 @@ int main(void) {
                fn_label, max_ulp_str, a.mean_ulp,
                a.correctly_rounded_pct, a.faithfully_rounded_pct,
                accuracy_score, ops_str, p.perf_bonus, total);
-        if (a.max_ulp > 0) {
+        if (opts.verbose && a.max_ulp > 0) {
             printf("%-14s  ^ input: %s  expected: %a  got: %a\n",
                    "", a.worst_input, a.worst_expected, a.worst_computed);
         }
