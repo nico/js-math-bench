@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Math Spec Compliance Tests</title>
+<style>
+  body {
+    font-family: system-ui, sans-serif;
+    background: #1a1a2e; color: #e0e0e0;
+    max-width: 900px; margin: 0 auto; padding: 20px;
+  }
+  h1 { color: #fff; margin-bottom: 5px; }
+  .summary { margin-bottom: 15px; font-size: 1.1em; }
+  .pass-count { color: #4caf50; }
+  .fail-count { color: #f44336; }
+  table {
+    width: 100%; border-collapse: collapse;
+    font-size: 14px; font-family: monospace;
+  }
+  th {
+    text-align: left; padding: 6px 8px;
+    background: #16213e; color: #aaa;
+    border-bottom: 2px solid #444;
+    text-transform: uppercase; font-size: 11px;
+    position: sticky; top: 0;
+  }
+  td { padding: 4px 8px; border-bottom: 1px solid #2a2a4a; }
+  tr.pass td:first-child { color: #4caf50; }
+  tr.fail { background: #2a1515; }
+  tr.fail td:first-child { color: #f44336; font-weight: bold; }
+  tr.fail td.got { color: #f44336; }
+  .fn-group td { border-top: 2px solid #333; }
+  .filter-bar { margin-bottom: 10px; }
+  .filter-bar label { margin-right: 15px; cursor: pointer; }
+  .filter-bar input { margin-right: 4px; }
+</style>
+</head>
+<body>
+<h1>Math Spec Compliance</h1>
+<div class="summary" id="summary"></div>
+<div class="filter-bar">
+  <label><input type="checkbox" id="showFailing" checked> Show failing</label>
+  <label><input type="checkbox" id="showPassing" checked> Show passing</label>
+</div>
+<table>
+  <thead>
+    <tr><th>Status</th><th>Test</th><th>Expected</th><th>Got</th></tr>
+  </thead>
+  <tbody id="results"></tbody>
+</table>
+
+<script src="spec-tests.js"></script>
+<script>
+(function() {
+  var results = runTests();
+  var passed = 0, failed = 0;
+  for (var i = 0; i < results.length; i++) {
+    if (results[i].pass) passed++; else failed++;
+  }
+
+  document.getElementById('summary').innerHTML =
+    '<span class="pass-count">' + passed + ' passed</span>, ' +
+    '<span class="fail-count">' + failed + ' failed</span>, ' +
+    results.length + ' total';
+
+  var tbody = document.getElementById('results');
+  var lastFn = '';
+
+  for (var i = 0; i < results.length; i++) {
+    var r = results[i];
+    var tr = document.createElement('tr');
+    tr.className = r.pass ? 'pass' : 'fail';
+    if (r.fn !== lastFn) {
+      tr.className += ' fn-group';
+      lastFn = r.fn;
+    }
+    tr.setAttribute('data-pass', r.pass ? '1' : '0');
+    tr.innerHTML =
+      '<td>' + (r.pass ? 'PASS' : 'FAIL') + '</td>' +
+      '<td>' + r.desc + '</td>' +
+      '<td>' + r.expected + '</td>' +
+      '<td class="got">' + r.got + '</td>';
+    tbody.appendChild(tr);
+  }
+
+  // Filtering
+  function updateFilter() {
+    var showPass = document.getElementById('showPassing').checked;
+    var showFail = document.getElementById('showFailing').checked;
+    var rows = tbody.getElementsByTagName('tr');
+    for (var i = 0; i < rows.length; i++) {
+      var isPass = rows[i].getAttribute('data-pass') === '1';
+      rows[i].style.display = (isPass ? showPass : showFail) ? '' : 'none';
+    }
+  }
+  document.getElementById('showPassing').addEventListener('change', updateFilter);
+  document.getElementById('showFailing').addEventListener('change', updateFilter);
+})();
+</script>
+</body>
+</html>
