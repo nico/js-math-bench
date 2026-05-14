@@ -5,7 +5,7 @@ v8_ieee754.o:
 	$(CXX) -c -O2 v8_ieee754.cc -std=c++23
 
 bench-libm-fdlibm: bench-libm.c bench-libm-data.inc v8_ieee754.o
-	$(CC) -O2 bench-libm.c v8_ieee754.o -o bench-libm-fdlibm
+	$(CC) -O2 bench-libm.c v8_ieee754.o -lm -o bench-libm-fdlibm
 
 bench-libm-data.inc: ../test_data.json generate-libm-bench.js
 	node generate-libm-bench.js > bench-libm-data.inc

@@ -19,6 +19,7 @@
 
 #include <bit>
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <type_traits>
 
