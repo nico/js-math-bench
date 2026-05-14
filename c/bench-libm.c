@@ -293,7 +293,7 @@ int main(int argc, char **argv) {
     printf("%-14s%10s%12s%8s%8s%10s%14s%8s%8s\n",
            "Function", "Max ULP", "Mean ULP", "% CR", "% FR",
            "Accuracy", "Ops/sec", "Perf+", "Total");
-    for (int i = 0; i < 110; i++) putchar('-');
+    for (int i = 0; i < 94; i++) putchar('-');
     putchar('\n');
 
     double log_sum = 0.0;
@@ -332,7 +332,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    for (int i = 0; i < 110; i++) putchar('=');
+    for (int i = 0; i < 94; i++) putchar('=');
     putchar('\n');
     printf("\nOverall Score: %.1f\n",
            score_count > 0 ? exp(log_sum / score_count) : 0.0);
