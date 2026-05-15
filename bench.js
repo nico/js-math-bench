@@ -130,12 +130,31 @@ function mulberry32(seed) {
 
 // --- Performance test input generation ---
 
+// Domain-appropriate input ranges for each function.
+// Three sets per function, all within the function's domain.
+const PERF_RANGES = {
+  // acos, asin: domain [-1, 1]
+  acos:  [[-1, 1],       [-1, 1],      [-1, 1]],
+  asin:  [[-1, 1],       [-1, 1],      [-1, 1]],
+  // atanh: domain (-1, 1)
+  atanh: [[-0.99, 0.99], [-0.99, 0.99], [-0.99, 0.99]],
+  // acosh: domain [1, inf)
+  acosh: [[1, 10],       [1, 1000],     [1, 1e6]],
+  // log, log2, log10: domain (0, inf)
+  log:   [[0.01, 1],     [1, 100],      [1, 1e5]],
+  log2:  [[0.01, 1],     [1, 100],      [1, 1e5]],
+  log10: [[0.01, 1],     [1, 100],      [1, 1e5]],
+  // log1p: domain (-1, inf)
+  log1p: [[-0.99, 10],   [0, 100],      [0, 1e5]],
+  // sqrt: domain [0, inf)
+  sqrt:  [[0, 1],        [0, 100],      [0, 1e5]],
+};
+
 function generatePerfInputs(fnName, rng) {
   const sets = {};
   const N = 100000;
 
   if (BINARY_FUNCTIONS.has(fnName)) {
-    // For binary functions, generate pairs
     sets['[0,1]x[0,1]'] = { a: new Float64Array(N), b: new Float64Array(N) };
     sets['[-10,10]x[-10,10]'] = { a: new Float64Array(N), b: new Float64Array(N) };
     sets['ints [0,1000)'] = { a: new Float64Array(N), b: new Float64Array(N) };
@@ -149,14 +168,13 @@ function generatePerfInputs(fnName, rng) {
       sets['ints [0,1000)'].b[i] = (rng() * 1000) | 0;
     }
   } else {
-    sets['[0,1]'] = new Float64Array(N);
-    sets['[-10,10]'] = new Float64Array(N);
-    sets['ints [0,100000)'] = new Float64Array(N);
-
-    for (let i = 0; i < N; i++) {
-      sets['[0,1]'][i] = rng();
-      sets['[-10,10]'][i] = rng() * 20 - 10;
-      sets['ints [0,100000)'][i] = i;
+    const ranges = PERF_RANGES[fnName] || [[0, 1], [-10, 10], [0, 1e5]];
+    for (let r = 0; r < 3; r++) {
+      const lo = ranges[r][0], hi = ranges[r][1];
+      const label = '[' + lo + ',' + hi + ']';
+      const arr = new Float64Array(N);
+      for (let i = 0; i < N; i++) arr[i] = lo + rng() * (hi - lo);
+      sets[label] = arr;
     }
   }
 

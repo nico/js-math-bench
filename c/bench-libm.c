@@ -215,13 +215,47 @@ static double measure_binary(double (*loop)(const double *, const double *, int)
     return samples[1];
 }
 
+// Domain-appropriate input ranges per function, matching bench.js PERF_RANGES.
+typedef struct { double lo, hi; } Range;
+typedef struct { Range r[3]; } PerfRanges;
+
+static PerfRanges get_perf_ranges(const char *fn_name) {
+    // Default: [0,1], [-10,10], [0,1e5]
+    PerfRanges dflt = {{{0, 1}, {-10, 10}, {0, 1e5}}};
+    // acos, asin: domain [-1, 1]
+    if (strcmp(fn_name, "acos") == 0 || strcmp(fn_name, "asin") == 0)
+        return (PerfRanges){{{-1, 1}, {-1, 1}, {-1, 1}}};
+    // atanh: domain (-1, 1)
+    if (strcmp(fn_name, "atanh") == 0)
+        return (PerfRanges){{{-0.99, 0.99}, {-0.99, 0.99}, {-0.99, 0.99}}};
+    // acosh: domain [1, inf)
+    if (strcmp(fn_name, "acosh") == 0)
+        return (PerfRanges){{{1, 10}, {1, 1000}, {1, 1e6}}};
+    // log, log2, log10: domain (0, inf)
+    if (strcmp(fn_name, "log") == 0 || strcmp(fn_name, "log2") == 0 ||
+        strcmp(fn_name, "log10") == 0)
+        return (PerfRanges){{{0.01, 1}, {1, 100}, {1, 1e5}}};
+    // log1p: domain (-1, inf)
+    if (strcmp(fn_name, "log1p") == 0)
+        return (PerfRanges){{{-0.99, 10}, {0, 100}, {0, 1e5}}};
+    // sqrt: domain [0, inf)
+    if (strcmp(fn_name, "sqrt") == 0)
+        return (PerfRanges){{{0, 1}, {0, 100}, {0, 1e5}}};
+    return dflt;
+}
+
+static void fill_range(double *arr, int n, double lo, double hi) {
+    for (int i = 0; i < n; i++)
+        arr[i] = lo + prng_next() * (hi - lo);
+}
+
 #define RUN_PERF_UNARY(name) \
     if (strcmp(fn_name, #name) == 0) { \
         double sets[3][PERF_N]; \
+        PerfRanges pr = get_perf_ranges(fn_name); \
         prng_seed(0x12345678u); \
-        for (int i = 0; i < PERF_N; i++) sets[0][i] = prng_next(); \
-        for (int i = 0; i < PERF_N; i++) sets[1][i] = prng_next() * 20.0 - 10.0; \
-        for (int i = 0; i < PERF_N; i++) sets[2][i] = (double)i; \
+        for (int s = 0; s < 3; s++) \
+            fill_range(sets[s], PERF_N, pr.r[s].lo, pr.r[s].hi); \
         for (int s = 0; s < 3; s++) \
             total += measure_unary(perf_loop_##name, sets[s]); \
     }
