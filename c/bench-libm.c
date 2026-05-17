@@ -231,6 +231,15 @@ static PerfRanges get_perf_ranges(const char *fn_name) {
     // acosh: domain [1, inf)
     if (strcmp(fn_name, "acosh") == 0)
         return (PerfRanges){{{1, 10}, {1, 1000}, {1, 1e6}}};
+    // exp, expm1: underflow at ~-745, overflow at ~709.78
+    if (strcmp(fn_name, "exp") == 0 || strcmp(fn_name, "expm1") == 0)
+        return (PerfRanges){{{0, 1}, {-10, 10}, {-745, 709}}};
+    // cosh, sinh: overflow at ~710.48
+    if (strcmp(fn_name, "cosh") == 0 || strcmp(fn_name, "sinh") == 0)
+        return (PerfRanges){{{0, 1}, {-10, 10}, {-710, 710}}};
+    // tanh: saturates to +/-1 beyond ~19
+    if (strcmp(fn_name, "tanh") == 0)
+        return (PerfRanges){{{0, 1}, {-10, 10}, {-20, 20}}};
     // log, log2, log10: domain (0, inf)
     if (strcmp(fn_name, "log") == 0 || strcmp(fn_name, "log2") == 0 ||
         strcmp(fn_name, "log10") == 0)

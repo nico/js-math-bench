@@ -140,6 +140,14 @@ const PERF_RANGES = {
   atanh: [[-0.99, 0.99], [-0.99, 0.99], [-0.99, 0.99]],
   // acosh: domain [1, inf)
   acosh: [[1, 10],       [1, 1000],     [1, 1e6]],
+  // exp, expm1: underflow at ~-745, overflow at ~709.78
+  exp:   [[0, 1],        [-10, 10],     [-745, 709]],
+  expm1: [[0, 1],        [-10, 10],     [-745, 709]],
+  // cosh, sinh: overflow at ~710.48
+  cosh:  [[0, 1],        [-10, 10],     [-710, 710]],
+  sinh:  [[0, 1],        [-10, 10],     [-710, 710]],
+  // tanh: saturates to +/-1 beyond ~19
+  tanh:  [[0, 1],        [-10, 10],     [-20, 20]],
   // log, log2, log10: domain (0, inf)
   log:   [[0.01, 1],     [1, 100],      [1, 1e5]],
   log2:  [[0.01, 1],     [1, 100],      [1, 1e5]],
