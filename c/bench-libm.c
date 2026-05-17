@@ -294,19 +294,28 @@ static void format_ops(double ops, char *buf, int bufsize) {
 
 typedef struct {
     int verbose;
+    const char *filter;  // NULL = all functions, or a single function name
 } Options;
 
 static Options parse_args(int argc, char **argv) {
-    Options opts = {0};
+    Options opts = {0, NULL};
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-v") == 0) {
             opts.verbose = 1;
+        } else if (strcmp(argv[i], "-f") == 0 || strcmp(argv[i], "--filter") == 0) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "-f requires a function name\n");
+                exit(1);
+            }
+            opts.filter = argv[++i];
         } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
-            printf("Usage: %s [-v]\n\n"
+            printf("Usage: %s [-v] [-f function]\n\n"
                    "Benchmark system libm accuracy and performance.\n\n"
                    "Options:\n"
-                   "  -v       Show worst-case input details for each function\n"
-                   "  -h       Show this help\n", argv[0]);
+                   "  -v            Show worst-case input details for each function\n"
+                   "  -f, --filter function\n"
+                   "               Run only the named function (e.g. -f sin)\n"
+                   "  -h            Show this help\n", argv[0]);
             exit(0);
         } else {
             fprintf(stderr, "Unknown option: %s\nTry '%s --help'\n", argv[i], argv[0]);
@@ -323,6 +332,16 @@ int main(int argc, char **argv) {
     };
     int nfns = sizeof(functions) / sizeof(functions[0]);
 
+    if (opts.filter) {
+        int found = 0;
+        for (int i = 0; i < nfns; i++)
+            if (strcmp(functions[i], opts.filter) == 0) { found = 1; break; }
+        if (!found) {
+            fprintf(stderr, "Unknown function: %s\n", opts.filter);
+            return 1;
+        }
+    }
+
     printf("Running libm benchmark...\n\n");
     printf("%-14s%10s%12s%8s%8s%10s%14s%8s%8s\n",
            "Function", "Max ULP", "Mean ULP", "% CR", "% FR",
@@ -335,6 +354,7 @@ int main(int argc, char **argv) {
 
     for (int f = 0; f < nfns; f++) {
         const char *fn = functions[f];
+        if (opts.filter && strcmp(fn, opts.filter) != 0) continue;
         AccuracyResult a = run_accuracy(fn);
         PerfResult p = run_perf(fn);
 
