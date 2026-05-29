@@ -163,17 +163,23 @@ function generatePerfInputs(fnName, rng) {
   const N = 100000;
 
   if (BINARY_FUNCTIONS.has(fnName)) {
-    sets['[0,1]x[0,1]'] = { a: new Float64Array(N), b: new Float64Array(N) };
-    sets['[-10,10]x[-10,10]'] = { a: new Float64Array(N), b: new Float64Array(N) };
-    sets['ints [0,1000)'] = { a: new Float64Array(N), b: new Float64Array(N) };
-
-    for (let i = 0; i < N; i++) {
-      sets['[0,1]x[0,1]'].a[i] = rng();
-      sets['[0,1]x[0,1]'].b[i] = rng();
-      sets['[-10,10]x[-10,10]'].a[i] = rng() * 20 - 10;
-      sets['[-10,10]x[-10,10]'].b[i] = rng() * 20 - 10;
-      sets['ints [0,1000)'].a[i] = (rng() * 1000) | 0;
-      sets['ints [0,1000)'].b[i] = (rng() * 1000) | 0;
+    const BINARY_PERF_RANGES = {
+      atan2: [[[0, 1], [0, 1]], [[-10, 10], [-10, 10]], [[0, 1000], [0, 1000]]],
+      // pow(negative, non-integer) = NaN and large bases overflow quickly,
+      // so use ranges that produce finite, normal results.
+      pow:   [[[0, 1], [0, 1]], [[0, 100], [-2, 2]],    [[0, 10], [-10, 10]]],
+    };
+    const ranges = BINARY_PERF_RANGES[fnName];
+    for (let r = 0; r < 3; r++) {
+      const [aLo, aHi] = ranges[r][0];
+      const [bLo, bHi] = ranges[r][1];
+      const label = '[' + aLo + ',' + aHi + ']x[' + bLo + ',' + bHi + ']';
+      const a = new Float64Array(N), b = new Float64Array(N);
+      for (let i = 0; i < N; i++) {
+        a[i] = aLo + rng() * (aHi - aLo);
+        b[i] = bLo + rng() * (bHi - bLo);
+      }
+      sets[label] = { a: a, b: b };
     }
   } else {
     const ranges = PERF_RANGES[fnName] || [[0, 1], [-10, 10], [0, 1e5]];
