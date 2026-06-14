@@ -80,6 +80,7 @@ static double prng_next(void) {
     UNARY(atan)  BINARY(atan2) UNARY(atanh) \
     UNARY(cbrt)  UNARY(cos)   UNARY(cosh) \
     UNARY(exp)   UNARY(expm1) \
+    BINARY(hypot) \
     UNARY(log)   UNARY(log1p) UNARY(log2) UNARY(log10) \
     BINARY(pow) \
     UNARY(sin)   UNARY(sinh)  UNARY(sqrt) \

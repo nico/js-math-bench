@@ -41,6 +41,7 @@ UNARY_FUNCTIONS = {
 
 BINARY_FUNCTIONS = {
     'atan2': mpmath.atan2,
+    'hypot': mpmath.hypot,
     'pow':   mpmath.power,
 }
 
@@ -71,6 +72,7 @@ DOMAINS = {
     'tan':   [(-1.5, 1.5, 150), (-100, 100, 50), (-1e-10, 1e-10, 50)],
     'tanh':  [(-10, 10, 150), (-1e-10, 1e-10, 100)],
     'atan2': [],  # handled specially as binary
+    'hypot': [],  # handled specially as binary
 }
 
 # Systematic inputs for binary functions
@@ -78,6 +80,11 @@ BINARY_DOMAINS = {
     'atan2': [
         # (y_range, x_range, count)
         ((-10, 10), (-10, 10), 200),
+        ((-1e-10, 1e-10), (-1e-10, 1e-10), 50),
+        ((1, 1000), (1, 1000), 50),
+    ],
+    'hypot': [
+        ((-10, 10), (-10, 10), 150),
         ((-1e-10, 1e-10), (-1e-10, 1e-10), 50),
         ((1, 1000), (1, 1000), 50),
     ],

@@ -11,10 +11,10 @@ const testData = JSON.parse(
   fs.readFileSync(path.join(__dirname, '..', 'test_data.json'), 'utf8')
 );
 
-const BINARY_FUNCTIONS = new Set(['atan2', 'pow']);
+const BINARY_FUNCTIONS = new Set(['atan2', 'hypot', 'pow']);
 const ALL_FUNCTIONS = [
   'acos', 'acosh', 'asin', 'asinh', 'atan', 'atan2', 'atanh',
-  'cbrt', 'cos', 'cosh', 'exp', 'expm1', 'log', 'log1p', 'log2', 'log10',
+  'cbrt', 'cos', 'cosh', 'exp', 'expm1', 'hypot', 'log', 'log1p', 'log2', 'log10',
   'pow', 'sin', 'sinh', 'sqrt', 'tan', 'tanh'
 ];
 

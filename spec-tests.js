@@ -231,6 +231,23 @@ t('expm1', [INF], INF, 'expm1(+Inf) = +Inf');
 // If x is -Inf, return -1.
 t('expm1', [NEG_INF], -1, 'expm1(-Inf) = -1');
 
+// == Math.hypot ==
+// If any argument is +Inf or -Inf, return +Inf.
+t('hypot', [INF, 0], INF, 'hypot(+Inf, 0) = +Inf');
+t('hypot', [NEG_INF, 0], INF, 'hypot(-Inf, 0) = +Inf');
+t('hypot', [0, INF], INF, 'hypot(0, +Inf) = +Inf');
+t('hypot', [0, NEG_INF], INF, 'hypot(0, -Inf) = +Inf');
+// +Inf wins over NaN.
+t('hypot', [INF, NAN], INF, 'hypot(+Inf, NaN) = +Inf');
+t('hypot', [NAN, INF], INF, 'hypot(NaN, +Inf) = +Inf');
+// If any argument is NaN (and none is Inf), return NaN.
+t('hypot', [NAN, 1], NAN, 'hypot(NaN, 1) = NaN');
+t('hypot', [1, NAN], NAN, 'hypot(1, NaN) = NaN');
+// If all arguments are +0 or -0, return +0.
+t('hypot', [POS_ZERO, POS_ZERO], POS_ZERO, 'hypot(+0, +0) = +0');
+t('hypot', [NEG_ZERO, POS_ZERO], POS_ZERO, 'hypot(-0, +0) = +0');
+t('hypot', [POS_ZERO, NEG_ZERO], POS_ZERO, 'hypot(+0, -0) = +0');
+
 // == Math.log ==
 // If x is NaN, return NaN.
 t('log', [NAN], NAN, 'log(NaN) = NaN');

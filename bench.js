@@ -5,11 +5,11 @@
 
 const FUNCTIONS = [
   'acos', 'acosh', 'asin', 'asinh', 'atan', 'atan2', 'atanh',
-  'cbrt', 'cos', 'cosh', 'exp', 'expm1', 'log', 'log1p', 'log2', 'log10',
+  'cbrt', 'cos', 'cosh', 'exp', 'expm1', 'hypot', 'log', 'log1p', 'log2', 'log10',
   'pow', 'sin', 'sinh', 'sqrt', 'tan', 'tanh'
 ];
 
-const BINARY_FUNCTIONS = new Set(['atan2', 'pow']);
+const BINARY_FUNCTIONS = new Set(['atan2', 'hypot', 'pow']);
 
 // --- Hex float parsing ---
 
@@ -172,6 +172,7 @@ function generatePerfInputs(fnName, rng) {
   if (BINARY_FUNCTIONS.has(fnName)) {
     const BINARY_PERF_RANGES = {
       atan2: [[[0, 1], [0, 1]], [[-10, 10], [-10, 10]], [[0, 1000], [0, 1000]]],
+      hypot: [[[0, 1], [0, 1]], [[-10, 10], [-10, 10]], [[0, 1000], [0, 1000]]],
       // pow(negative, non-integer) = NaN and large bases overflow quickly,
       // so use ranges that produce finite, normal results.
       pow:   [[[0, 1], [0, 1]], [[0, 100], [-2, 2]],    [[0, 10], [-10, 10]]],
@@ -296,6 +297,7 @@ function runBinaryLoop(fnName, a, b, n) {
   var d = 0;
   switch (fnName) {
     case 'atan2': for (var i = 0; i < n; i++) d += Math.atan2(a[i], b[i]); break;
+    case 'hypot': for (var i = 0; i < n; i++) d += Math.hypot(a[i], b[i]); break;
     case 'pow':   for (var i = 0; i < n; i++) d += Math.pow(a[i], b[i]); break;
   }
   return d;
