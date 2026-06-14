@@ -10,9 +10,13 @@ const path = require('path');
 const bench = fs.readFileSync(path.join(__dirname, 'bench.js'), 'utf8');
 const testData = fs.readFileSync(path.join(__dirname, 'test_data.json'), 'utf8');
 
-// Strip the module.exports block from bench.js
-const benchClean = bench.replace(
-  /\/\/ Export for both.*\nif \(typeof module.*\n.*\n\}/s, '');
+// Strip the module.exports block and make runBenchmark synchronous
+// (the async/setTimeout is only needed in browsers to yield to the UI).
+const benchClean = bench
+  .replace(/\/\/ Export for both.*\nif \(typeof module.*\n.*\n\}/s, '')
+  .replace('async function runBenchmark', 'function runBenchmark')
+  .replace(/\s*\/\/ Yield to keep UI responsive\n/g, '')
+  .replace(/\s*await new Promise.*;\n/g, '\n');
 
 const runner = `
 // --- Standalone runner ---
@@ -28,10 +32,10 @@ function _formatOps(n) {
   return n.toFixed(0);
 }
 
-(async function() {
+(function() {
   _log('Running benchmark...\\n');
 
-  var results = await runBenchmark(_testData, function(fnName, phase) {
+  var results = runBenchmark(_testData, function(fnName, phase) {
     if (phase === 'done') _log('  ' + fnName + ': done');
   });
 
