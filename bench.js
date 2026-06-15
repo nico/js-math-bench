@@ -5,11 +5,11 @@
 
 const FUNCTIONS = [
   'acos', 'acosh', 'asin', 'asinh', 'atan', 'atan2', 'atanh',
-  'cbrt', 'cos', 'cosh', 'exp', 'expm1', 'hypot', 'log', 'log1p', 'log2', 'log10',
+  'cbrt', 'cos', 'cosh', 'exp', 'expm1', 'hypot', 'hypot3', 'hypot4', 'log', 'log1p', 'log2', 'log10',
   'pow', 'sin', 'sinh', 'sqrt', 'tan', 'tanh'
 ];
 
-const BINARY_FUNCTIONS = new Set(['atan2', 'hypot', 'pow']);
+const BINARY_FUNCTIONS = new Set(['atan2', 'hypot', 'hypot3', 'hypot4', 'pow']);
 
 // --- Hex float parsing ---
 
@@ -171,8 +171,10 @@ function generatePerfInputs(fnName, rng) {
 
   if (BINARY_FUNCTIONS.has(fnName)) {
     const BINARY_PERF_RANGES = {
-      atan2: [[[0, 1], [0, 1]], [[-10, 10], [-10, 10]], [[0, 1000], [0, 1000]]],
-      hypot: [[[0, 1], [0, 1]], [[-10, 10], [-10, 10]], [[0, 1000], [0, 1000]]],
+      atan2:  [[[0, 1], [0, 1]], [[-10, 10], [-10, 10]], [[0, 1000], [0, 1000]]],
+      hypot:  [[[0, 1], [0, 1]], [[-10, 10], [-10, 10]], [[0, 1000], [0, 1000]]],
+      hypot3: [[[0, 1], [0, 1]], [[-10, 10], [-10, 10]], [[0, 1000], [0, 1000]]],
+      hypot4:  [[[0, 1], [0, 1]], [[-10, 10], [-10, 10]], [[0, 1000], [0, 1000]]],
       // pow(negative, non-integer) = NaN and large bases overflow quickly,
       // so use ranges that produce finite, normal results.
       pow:   [[[0, 1], [0, 1]], [[0, 100], [-2, 2]],    [[0, 10], [-10, 10]]],
@@ -207,9 +209,10 @@ function generatePerfInputs(fnName, rng) {
 
 function runAccuracyTest(fnName, testData) {
   const isBinary = BINARY_FUNCTIONS.has(fnName);
-  const fn = isBinary
-    ? (a, b) => Math[fnName](a, b)
-    : (x) => Math[fnName](x);
+  const fn = fnName === 'hypot3' ? (a, b) => Math.hypot(a, 0, b)
+           : fnName === 'hypot4' ? (a, b) => Math.hypot(a, 0, 0, b)
+           : isBinary ? (a, b) => Math[fnName](a, b)
+           : (x) => Math[fnName](x);
 
   const categories = ['worstCase', 'systematic', 'edgeCases'];
   let totalUlp = 0;
@@ -297,7 +300,9 @@ function runBinaryLoop(fnName, a, b, n) {
   var d = 0;
   switch (fnName) {
     case 'atan2': for (var i = 0; i < n; i++) d += Math.atan2(a[i], b[i]); break;
-    case 'hypot': for (var i = 0; i < n; i++) d += Math.hypot(a[i], b[i]); break;
+    case 'hypot':   for (var i = 0; i < n; i++) d += Math.hypot(a[i], b[i]); break;
+    case 'hypot3':  for (var i = 0; i < n; i++) d += Math.hypot(a[i], 0, b[i]); break;
+    case 'hypot4':  for (var i = 0; i < n; i++) d += Math.hypot(a[i], 0, 0, b[i]); break;
     case 'pow':   for (var i = 0; i < n; i++) d += Math.pow(a[i], b[i]); break;
   }
   return d;
@@ -391,7 +396,7 @@ async function runBenchmark(testData, onProgress) {
   const results = [];
 
   for (const fnName of FUNCTIONS) {
-    const fnData = testData[fnName];
+    const fnData = testData[fnName] || testData[fnName.replace(/\d+$/, '')];
     if (!fnData) {
       if (onProgress) onProgress(fnName, 'skip', null);
       continue;
