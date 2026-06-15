@@ -99,10 +99,17 @@ function ulpError(computed, expected) {
   if (isNaN(expected) || isNaN(computed)) return Infinity;
   // Both infinite with same sign: exact match
   if (expected === computed) return 0;
-  // Expected is infinite but computed is not (or vice versa): infinite error
+  // One or both infinite (but not same value, handled above)
   if (!isFinite(expected) || !isFinite(computed)) {
-    if (!isFinite(expected) && !isFinite(computed)) return Infinity; // different sign infinities
-    return Infinity;
+    // Different sign infinities: infinite error
+    if (!isFinite(expected) && !isFinite(computed)) return Infinity;
+    // Treat +/-Infinity as +/-DBL_MAX + 1 ULP: substitute DBL_MAX for
+    // the infinite side and compute normally, then add 1.
+    var DBL_MAX = 1.7976931348623157e+308;
+    var inf = isFinite(expected) ? computed : expected;
+    var finite = isFinite(expected) ? expected : computed;
+    var edge = inf > 0 ? DBL_MAX : -DBL_MAX;
+    return Math.abs(finite - edge) / ulpOf(edge) + 1;
   }
   // Expected is zero
   if (expected === 0) {
