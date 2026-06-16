@@ -3,6 +3,7 @@
 //
 // Build: cd c && make && ./bench-libm
 
+#include <float.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -35,7 +36,15 @@ static double ulp_error(double computed, double expected) {
     if (isnan(expected) && isnan(computed)) return 0.0;
     if (isnan(expected) || isnan(computed)) return INFINITY;
     if (expected == computed) return 0.0;
-    if (!isfinite(expected) || !isfinite(computed)) return INFINITY;
+    if (!isfinite(expected) || !isfinite(computed)) {
+        // Different sign infinities: infinite error.
+        if (!isfinite(expected) && !isfinite(computed)) return INFINITY;
+        // Treat +/-Infinity as +/-DBL_MAX + 1 ULP.
+        double inf = isfinite(expected) ? computed : expected;
+        double finite_val = isfinite(expected) ? expected : computed;
+        double edge = inf > 0 ? DBL_MAX : -DBL_MAX;
+        return fabs(finite_val - edge) / ulp_of(edge) + 1;
+    }
     if (expected == 0.0) {
         if (computed == 0.0) return 0.0;
         return fabs(computed) / 5e-324;
