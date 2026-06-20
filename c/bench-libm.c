@@ -329,14 +329,16 @@ static void format_ops(double ops, char *buf, int bufsize) {
 
 #define NAME_ENTRY(name) #name,
 
+#define MAX_FILTERS 32
 typedef struct {
     int verbose;
     int wide;
-    const char *filter;  // NULL = all functions, or a single function name
+    int nfilters;
+    const char *filters[MAX_FILTERS];
 } Options;
 
 static Options parse_args(int argc, char **argv) {
-    Options opts = {0, 0, NULL};
+    Options opts = {0, 0, 0, {NULL}};
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-v") == 0) {
             opts.verbose = 1;
@@ -347,14 +349,18 @@ static Options parse_args(int argc, char **argv) {
                 fprintf(stderr, "-f requires a function name\n");
                 exit(1);
             }
-            opts.filter = argv[++i];
+            if (opts.nfilters >= MAX_FILTERS) {
+                fprintf(stderr, "Too many -f options\n");
+                exit(1);
+            }
+            opts.filters[opts.nfilters++] = argv[++i];
         } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
-            printf("Usage: %s [-v] [-f function] [--format=wide]\n\n"
+            printf("Usage: %s [-v] [-f function]... [--format=wide]\n\n"
                    "Benchmark system libm accuracy and performance.\n\n"
                    "Options:\n"
                    "  -v              Show worst-case input details for each function\n"
                    "  -f, --filter function\n"
-                   "                 Run only the named function (e.g. -f sin)\n"
+                   "                 Run only the named function(s) (repeatable)\n"
                    "  --format=wide  Wider columns for large ULP values\n"
                    "  -h              Show this help\n", argv[0]);
             exit(0);
@@ -373,12 +379,12 @@ int main(int argc, char **argv) {
     };
     int nfns = sizeof(functions) / sizeof(functions[0]);
 
-    if (opts.filter) {
+    for (int fi = 0; fi < opts.nfilters; fi++) {
         int found = 0;
         for (int i = 0; i < nfns; i++)
-            if (strcmp(functions[i], opts.filter) == 0) { found = 1; break; }
+            if (strcmp(functions[i], opts.filters[fi]) == 0) { found = 1; break; }
         if (!found) {
-            fprintf(stderr, "Unknown function: %s\n", opts.filter);
+            fprintf(stderr, "Unknown function: %s\n", opts.filters[fi]);
             return 1;
         }
     }
@@ -398,7 +404,12 @@ int main(int argc, char **argv) {
 
     for (int f = 0; f < nfns; f++) {
         const char *fn = functions[f];
-        if (opts.filter && strcmp(fn, opts.filter) != 0) continue;
+        if (opts.nfilters) {
+            int match = 0;
+            for (int fi = 0; fi < opts.nfilters; fi++)
+                if (strcmp(fn, opts.filters[fi]) == 0) { match = 1; break; }
+            if (!match) continue;
+        }
         AccuracyResult a = run_accuracy(fn);
         PerfResult p = run_perf(fn);
 
