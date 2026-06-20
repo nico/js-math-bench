@@ -313,14 +313,17 @@ static void format_ops(double ops, char *buf, int bufsize) {
 
 typedef struct {
     int verbose;
+    int wide;
     const char *filter;  // NULL = all functions, or a single function name
 } Options;
 
 static Options parse_args(int argc, char **argv) {
-    Options opts = {0, NULL};
+    Options opts = {0, 0, NULL};
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-v") == 0) {
             opts.verbose = 1;
+        } else if (strcmp(argv[i], "--format=wide") == 0) {
+            opts.wide = 1;
         } else if (strcmp(argv[i], "-f") == 0 || strcmp(argv[i], "--filter") == 0) {
             if (i + 1 >= argc) {
                 fprintf(stderr, "-f requires a function name\n");
@@ -328,13 +331,14 @@ static Options parse_args(int argc, char **argv) {
             }
             opts.filter = argv[++i];
         } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
-            printf("Usage: %s [-v] [-f function]\n\n"
+            printf("Usage: %s [-v] [-f function] [--format=wide]\n\n"
                    "Benchmark system libm accuracy and performance.\n\n"
                    "Options:\n"
-                   "  -v            Show worst-case input details for each function\n"
+                   "  -v              Show worst-case input details for each function\n"
                    "  -f, --filter function\n"
-                   "               Run only the named function (e.g. -f sin)\n"
-                   "  -h            Show this help\n", argv[0]);
+                   "                 Run only the named function (e.g. -f sin)\n"
+                   "  --format=wide  Wider columns for large ULP values\n"
+                   "  -h              Show this help\n", argv[0]);
             exit(0);
         } else {
             fprintf(stderr, "Unknown option: %s\nTry '%s --help'\n", argv[i], argv[0]);
@@ -362,10 +366,13 @@ int main(int argc, char **argv) {
     }
 
     printf("Running libm benchmark...\n\n");
-    printf("%-14s%10s%12s%8s%8s%10s%14s%8s%8s\n",
-           "Function", "Max ULP", "Mean ULP", "% CR", "% FR",
+    int w = opts.wide ? 22 : 10;  // width for Max ULP column
+    int w2 = opts.wide ? 24 : 12; // width for Mean ULP column
+    int ruler = 72 + w + w2;
+    printf("%-14s%*s%*s%8s%8s%10s%14s%8s%8s\n",
+           "Function", w, "Max ULP", w2, "Mean ULP", "% CR", "% FR",
            "Accuracy", "Ops/sec", "Perf+", "Total");
-    for (int i = 0; i < 94; i++) putchar('-');
+    for (int i = 0; i < ruler; i++) putchar('-');
     putchar('\n');
 
     double log_sum = 0.0;
@@ -390,8 +397,8 @@ int main(int argc, char **argv) {
         char fn_label[32];
         snprintf(fn_label, sizeof(fn_label), "%s()", fn);
 
-        printf("%-14s%10s%12.4f%7.1f%%%7.1f%%%10.1f%14s%8.1f%8.1f\n",
-               fn_label, max_ulp_str, a.mean_ulp,
+        printf("%-14s%*s%*.4f%7.1f%%%7.1f%%%10.1f%14s%8.1f%8.1f\n",
+               fn_label, w, max_ulp_str, w2, a.mean_ulp,
                a.correctly_rounded_pct, a.faithfully_rounded_pct,
                accuracy_score, ops_str, p.perf_bonus, total);
         if (opts.verbose && a.max_ulp > 0) {
@@ -405,7 +412,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    for (int i = 0; i < 94; i++) putchar('=');
+    for (int i = 0; i < ruler; i++) putchar('=');
     putchar('\n');
     printf("\nOverall Score: %.1f\n",
            score_count > 0 ? exp(log_sum / score_count) : 0.0);
