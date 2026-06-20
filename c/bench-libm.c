@@ -228,6 +228,7 @@ static double measure_binary(double (*loop)(const double *, const double *, int)
 // Domain-appropriate input ranges per function, matching bench.js PERF_RANGES.
 typedef struct { double lo, hi; } Range;
 typedef struct { Range r[3]; } PerfRanges;
+typedef struct { Range a[3]; Range b[3]; } BinaryPerfRanges;
 
 static PerfRanges get_perf_ranges(const char *fn_name) {
     // Default: [0,1], [-10,10], [0,1e5]
@@ -263,6 +264,21 @@ static PerfRanges get_perf_ranges(const char *fn_name) {
     return dflt;
 }
 
+static BinaryPerfRanges get_binary_perf_ranges(const char *fn_name) {
+    // Default (atan2, hypot): [0,1]x[0,1], [-10,10]x[-10,10], [0,1000]x[0,1000]
+    BinaryPerfRanges dflt = {
+        {{0, 1}, {-10, 10}, {0, 1000}},
+        {{0, 1}, {-10, 10}, {0, 1000}}
+    };
+    // pow: avoid negative bases (NaN for non-integer exp) and large values (overflow)
+    if (strcmp(fn_name, "pow") == 0)
+        return (BinaryPerfRanges){
+            {{0, 1}, {0, 100}, {0, 10}},
+            {{0, 1}, {-2, 2},  {-10, 10}}
+        };
+    return dflt;
+}
+
 static void fill_range(double *arr, int n, double lo, double hi) {
     for (int i = 0; i < n; i++)
         arr[i] = lo + prng_next() * (hi - lo);
@@ -282,10 +298,12 @@ static void fill_range(double *arr, int n, double lo, double hi) {
 #define RUN_PERF_BINARY(name) \
     if (strcmp(fn_name, #name) == 0) { \
         double a[3][PERF_N], b[3][PERF_N]; \
+        BinaryPerfRanges bpr = get_binary_perf_ranges(fn_name); \
         prng_seed(0x12345678u); \
-        for (int i = 0; i < PERF_N; i++) { a[0][i] = prng_next(); b[0][i] = prng_next(); } \
-        for (int i = 0; i < PERF_N; i++) { a[1][i] = prng_next()*20-10; b[1][i] = prng_next()*20-10; } \
-        for (int i = 0; i < PERF_N; i++) { a[2][i] = (double)((int)(prng_next()*1000)); b[2][i] = (double)((int)(prng_next()*1000)); } \
+        for (int s = 0; s < 3; s++) { \
+            fill_range(a[s], PERF_N, bpr.a[s].lo, bpr.a[s].hi); \
+            fill_range(b[s], PERF_N, bpr.b[s].lo, bpr.b[s].hi); \
+        } \
         for (int s = 0; s < 3; s++) \
             total += measure_binary(perf_loop_##name, a[s], b[s]); \
     }
