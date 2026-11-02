@@ -52,10 +52,23 @@ python3 -m http.server 8000
 # Open http://localhost:8000 -- benchmark runs automatically
 ```
 
+## Special-result benchmark
+
+`weird.html` / `node weird-cli.js` is a second, performance-only benchmark for
+inputs whose result is special: +/-Infinity, NaN, zero, or a denormal. libm
+implementations typically handle these on separate code paths (overflow and
+underflow handling, domain checks, exception-flag bookkeeping), so they can be
+much faster or much slower than the normal path. Each input class is timed
+against the function's normal-input baseline and reported as a ratio, and every
+output is checked to be in the expected result class. Only functions that can
+produce such a result are included; `atan`, `atan2` and `tanh` return finite
+values for every non-NaN input and are skipped.
+
 ## Running from the command line
 
 ```bash
 node runner-cli.js
+node weird-cli.js    # special-result benchmark
 ```
 
 For other JS engines (d8, jsc, etc.), generate a standalone single-file bundle:

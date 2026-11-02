@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>js-math-bench: special results</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+  background: #0d1117; color: #c9d1d9; padding: 24px; max-width: 1200px; margin: 0 auto;
+}
+h1 { font-size: 28px; margin-bottom: 4px; color: #f0f6fc; }
+.subtitle { color: #8b949e; margin-bottom: 8px; font-size: 14px; }
+.nav { color: #8b949e; margin-bottom: 24px; font-size: 13px; }
+a { color: #58a6ff; }
+.controls { margin-bottom: 20px; display: flex; gap: 12px; align-items: center; }
+button {
+  background: #238636; color: #fff; border: none; padding: 10px 24px;
+  border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: 600;
+}
+button:hover { background: #2ea043; }
+button:disabled { background: #21262d; color: #484f58; cursor: not-allowed; }
+.progress-bar {
+  flex: 1; height: 8px; background: #21262d; border-radius: 4px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: #238636; width: 0%; transition: width 0.2s;
+}
+.status { color: #8b949e; font-size: 13px; min-width: 200px; text-align: right; }
+.summary {
+  background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+  padding: 20px; margin-bottom: 20px; text-align: center; display: none;
+  position: relative; z-index: 0;
+}
+.summary .number { font-size: 48px; font-weight: 700; color: #f0f6fc; }
+.summary .label { color: #8b949e; font-size: 14px; }
+.summary .detail { color: #8b949e; font-size: 13px; margin-top: 8px; }
+table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+  background: #161b22; border-radius: 8px; overflow: visible;
+  position: relative; z-index: 1;
+}
+th {
+  background: #21262d; color: #8b949e; padding: 10px 12px; text-align: right;
+  font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+th:first-child { text-align: left; }
+td { padding: 8px 12px; border-top: 1px solid #21262d; text-align: right; }
+td:first-child { text-align: left; }
+tr:hover td { background: #1c2128; }
+tr.fn-row td { border-top: 2px solid #30363d; }
+tr.fn-row td:first-child { font-weight: 600; color: #f0f6fc; }
+tr.fn-row td:first-child .range { font-weight: normal; color: #8b949e; margin-left: 8px; }
+tr.case-row td:first-child { padding-left: 32px; }
+.good { color: #3fb950; }
+.ok { color: #d29922; }
+.bad { color: #f85149; }
+.muted { color: #8b949e; }
+.ratio { font-weight: 700; }
+.has-tooltip { position: relative; cursor: help; }
+.has-tooltip .tooltip {
+  display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  background: #30363d; color: #c9d1d9; padding: 8px 12px; border-radius: 6px;
+  font-size: 12px; white-space: pre; z-index: 10;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4); margin-bottom: 6px;
+  text-align: left; font-weight: normal; line-height: 1.5; cursor: text;
+  user-select: text;
+}
+.has-tooltip:hover .tooltip { display: block; }
+.info-btn {
+  display: inline-block; width: 15px; height: 15px; border-radius: 50%;
+  background: #30363d; color: #8b949e; font-size: 10px; text-align: center;
+  line-height: 15px; cursor: help; position: relative; vertical-align: middle;
+  margin-left: 4px;
+}
+.info-btn .tooltip {
+  display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  background: #30363d; color: #c9d1d9; padding: 8px 12px; border-radius: 6px;
+  font-size: 12px; z-index: 10; pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4); margin-bottom: 6px; text-align: left;
+  line-height: 1.5; width: 280px; white-space: normal; text-transform: none;
+  letter-spacing: normal;
+}
+.info-btn:hover .tooltip { display: block; }
+</style>
+</head>
+<body>
+
+<h1>js-math-bench: special results</h1>
+<p class="subtitle">Performance of Math functions on inputs whose result is &plusmn;Infinity, NaN, zero, or a denormal</p>
+<p class="nav">See also: <a href="index.html">main benchmark</a> &middot; <a href="spec-tests.html">spec compliance tests</a></p>
+
+<div class="controls">
+  <button id="run-btn" onclick="startBenchmark()">Run Benchmark</button>
+  <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  <div class="status" id="status">Ready</div>
+</div>
+
+<div class="summary" id="summary">
+  <div class="number" id="summary-ratio">&mdash;</div>
+  <div class="label">Speed on special-result inputs relative to normal inputs (geometric mean)</div>
+  <div class="detail" id="summary-detail"></div>
+</div>
+
+<table id="results">
+  <thead>
+    <tr>
+      <th>Inputs<span class="info-btn">?<span class="tooltip">Each function's first row is its normal-input baseline, using the middle input range of the main benchmark. The rows below it are input classes that all produce the listed special result.</span></span></th>
+      <th>Result</th>
+      <th>ns/call</th>
+      <th>Ops/sec</th>
+      <th>vs Normal<span class="info-btn">?<span class="tooltip">Ops/sec on these inputs divided by ops/sec on the function's normal inputs. Above 1x means the special-case path is faster than the normal path (typically an early exit); below 1x means it is slower (typically overflow/underflow handling or exception-flag bookkeeping).</span></span></th>
+      <th>Correct<span class="info-btn">?<span class="tooltip">Whether every output fell into the expected result class. Hover a failing cell to see an example.</span></span></th>
+    </tr>
+  </thead>
+  <tbody id="results-body"></tbody>
+</table>
+
+<script src="bench.js"></script>
+<script src="weird-bench.js"></script>
+<script>
+function formatOps(n) {
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(0) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(0) + 'K';
+  return n.toFixed(0);
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function ratioClass(r) {
+  if (r >= 0.9) return 'good';
+  if (r >= 0.5) return 'ok';
+  return 'bad';
+}
+
+function addRow(tbody, cls, cells) {
+  const tr = document.createElement('tr');
+  tr.className = cls;
+  tr.innerHTML = cells;
+  tbody.appendChild(tr);
+}
+
+async function startBenchmark() {
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  const tbody = document.getElementById('results-body');
+  tbody.innerHTML = '';
+  document.getElementById('summary').style.display = 'none';
+
+  let completed = 0;
+  const total = WEIRD_FUNCTIONS.length;
+
+  const results = await runWeirdBenchmark((fnName, phase, r) => {
+    document.getElementById('progress').style.width = (completed / total) * 100 + '%';
+    document.getElementById('status').textContent = `${fnName}...`;
+    if (phase !== 'done') return;
+    completed++;
+
+    const b = r.baseline;
+    addRow(tbody, 'fn-row', `
+      <td>Math.${esc(fnName)}<span class="range">normal ${esc(b.label)}</span></td>
+      <td class="muted">finite</td>
+      <td>${b.nsPerCall.toFixed(2)}</td>
+      <td>${formatOps(b.opsPerSec)}</td>
+      <td class="muted">1.00x</td>
+      <td></td>
+    `);
+    for (const c of r.cases) {
+      const okCell = c.mismatches === 0
+        ? '<td class="good">yes</td>'
+        : `<td class="bad has-tooltip">no<span class="tooltip">${c.mismatches} inputs did not give ${esc(c.expect)}, e.g.\n${esc(c.example.expr)} = ${esc(c.example.got)}</span></td>`;
+      addRow(tbody, 'case-row', `
+        <td>${esc(c.label)}</td>
+        <td>${esc(c.expect)}</td>
+        <td>${c.nsPerCall.toFixed(2)}</td>
+        <td>${formatOps(c.opsPerSec)}</td>
+        <td class="ratio ${ratioClass(c.ratio)}">${c.ratio.toFixed(2)}x</td>
+        ${okCell}
+      `);
+    }
+  });
+
+  const s = computeWeirdSummary(results);
+  document.getElementById('summary').style.display = 'block';
+  document.getElementById('summary-ratio').textContent = s.meanRatio.toFixed(2) + 'x';
+  let detail = s.slowest
+    ? `Slowest: Math.${esc(s.slowest.fn)} ${esc(s.slowest.label)} at ${s.slowest.ratio.toFixed(2)}x. `
+    : '';
+  detail += s.mismatchedCases === 0
+    ? `All ${s.cases} cases returned the expected result.`
+    : `<span class="bad">${s.mismatchedCases} of ${s.cases} cases returned an unexpected result.</span>`;
+  document.getElementById('summary-detail').innerHTML = detail;
+  document.getElementById('progress').style.width = '100%';
+  document.getElementById('status').textContent = 'Done';
+  btn.disabled = false;
+}
+startBenchmark();
+</script>
+
+</body>
+</html>
