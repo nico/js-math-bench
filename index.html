@@ -150,11 +150,9 @@ function callExpr(fnName, args) {
 }
 
 function formatWorstCase(fnName, a) {
-  const hexArgs = a.worstInput == null ? ['—']
-    : Array.isArray(a.worstInput) ? a.worstInput : [a.worstInput];
+  const hexArgs = Array.isArray(a.worstInput) ? a.worstInput : [a.worstInput];
   // Convert hex float inputs to decimal for a working JS expression
-  const decArgs = a.worstInput == null ? ['—']
-    : hexArgs.map(h => String(parseHexFloat(h)));
+  const decArgs = hexArgs.map(h => String(parseHexFloat(h)));
   const expr = callExpr(fnName, decArgs);
   const hexExpr = callExpr(fnName, hexArgs);
   const expected = esc(a.worstExpected);
@@ -204,7 +202,7 @@ async function startBenchmark() {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>Math.${fnName}</td>
-        <td class="${ulpClass(a.maxUlp)} has-tooltip">${formatNum(a.maxUlp, a.maxUlp < 100 ? 2 : 0)}<span class="tooltip">${formatWorstCase(fnName, a)}</span></td>
+        <td class="${ulpClass(a.maxUlp)}${a.worstInput != null ? ' has-tooltip' : ''}">${formatNum(a.maxUlp, a.maxUlp < 100 ? 2 : 0)}${a.worstInput != null ? `<span class="tooltip">${formatWorstCase(fnName, a)}</span>` : ''}</td>
         <td class="${ulpClass(a.meanUlp)}">${formatNum(a.meanUlp, 4)}</td>
         <td class="${scoreColor(a.correctlyRoundedPct)} score-cell">${a.correctlyRoundedPct.toFixed(1)}%</td>
         <td class="${scoreColor(a.faithfullyRoundedPct)}">${a.faithfullyRoundedPct.toFixed(1)}%</td>
