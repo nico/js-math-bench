@@ -165,20 +165,23 @@ const PERF_RANGES = {
   sqrt:  [[0, 1],        [0, 100],      [0, 1e5]],
 };
 
+const BINARY_PERF_RANGES = {
+  atan2:  [[[0, 1], [0, 1]], [[-10, 10], [-10, 10]], [[0, 1000], [0, 1000]]],
+  hypot:  [[[0, 1], [0, 1]], [[-10, 10], [-10, 10]], [[0, 1000], [0, 1000]]],
+  hypot3: [[[0, 1], [0, 1]], [[-10, 10], [-10, 10]], [[0, 1000], [0, 1000]]],
+  hypot4: [[[0, 1], [0, 1]], [[-10, 10], [-10, 10]], [[0, 1000], [0, 1000]]],
+  // pow(negative, non-integer) = NaN and large bases overflow quickly,
+  // so use ranges that produce finite, normal results.
+  pow:    [[[0, 1], [0, 1]], [[0, 100], [-2, 2]],    [[0, 10], [-10, 10]]],
+};
+
+const PERF_N = 100000;
+
 function generatePerfInputs(fnName, rng) {
   const sets = {};
-  const N = 100000;
+  const N = PERF_N;
 
   if (BINARY_FUNCTIONS.has(fnName)) {
-    const BINARY_PERF_RANGES = {
-      atan2:  [[[0, 1], [0, 1]], [[-10, 10], [-10, 10]], [[0, 1000], [0, 1000]]],
-      hypot:  [[[0, 1], [0, 1]], [[-10, 10], [-10, 10]], [[0, 1000], [0, 1000]]],
-      hypot3: [[[0, 1], [0, 1]], [[-10, 10], [-10, 10]], [[0, 1000], [0, 1000]]],
-      hypot4:  [[[0, 1], [0, 1]], [[-10, 10], [-10, 10]], [[0, 1000], [0, 1000]]],
-      // pow(negative, non-integer) = NaN and large bases overflow quickly,
-      // so use ranges that produce finite, normal results.
-      pow:   [[[0, 1], [0, 1]], [[0, 100], [-2, 2]],    [[0, 10], [-10, 10]]],
-    };
     const ranges = BINARY_PERF_RANGES[fnName];
     for (let r = 0; r < 3; r++) {
       const [aLo, aHi] = ranges[r][0];
@@ -308,55 +311,62 @@ function runBinaryLoop(fnName, a, b, n) {
   return d;
 }
 
+const now = typeof performance !== 'undefined'
+  ? () => performance.now() : () => Date.now();
+
+// Measure ops/sec of Math.<fnName> over one input set. `inputs` is a
+// Float64Array for unary functions, or {a, b} for binary ones.
+function measureOpsPerSec(fnName, inputs) {
+  const isBinary = BINARY_FUNCTIONS.has(fnName);
+  const N = isBinary ? inputs.a.length : inputs.length;
+
+  // Warm up so the JIT compiles the runner
+  for (let w = 0; w < 5; w++) {
+    if (isBinary) runBinaryLoop(fnName, inputs.a, inputs.b, N);
+    else runUnaryLoop(fnName, inputs, N);
+  }
+
+  // Run for at least MIN_TIME_MS, looping over the input array.
+  // Collect per-pass timings for 3 separate measurement rounds, take median.
+  const MIN_TIME_MS = 10;
+  const ROUNDS = 3;
+  const opsPerSecSamples = [];
+
+  for (let r = 0; r < ROUNDS; r++) {
+    let totalOps = 0;
+    let dummy = 0;
+    const deadline = now() + MIN_TIME_MS;
+    const start = now();
+    if (isBinary) {
+      while (now() < deadline) {
+        dummy += runBinaryLoop(fnName, inputs.a, inputs.b, N);
+        totalOps += N;
+      }
+    } else {
+      while (now() < deadline) {
+        dummy += runUnaryLoop(fnName, inputs, N);
+        totalOps += N;
+      }
+    }
+    const elapsed = now() - start;
+    // Use dummy to prevent dead-code elimination
+    if (dummy !== dummy + 1) void 0;
+    opsPerSecSamples.push((totalOps / elapsed) * 1000);
+  }
+
+  opsPerSecSamples.sort((a, b) => a - b);
+  return opsPerSecSamples[Math.floor(ROUNDS / 2)];
+}
+
 function runPerfTest(fnName) {
   const rng = mulberry32(0x12345678);
   const inputSets = generatePerfInputs(fnName, rng);
   const isBinary = BINARY_FUNCTIONS.has(fnName);
   const results = {};
 
-  const now = typeof performance !== 'undefined'
-    ? () => performance.now() : () => Date.now();
-
   for (const [setName, inputs] of Object.entries(inputSets)) {
     const N = isBinary ? inputs.a.length : inputs.length;
-
-    // Warm up so the JIT compiles the runner
-    for (let w = 0; w < 5; w++) {
-      if (isBinary) runBinaryLoop(fnName, inputs.a, inputs.b, N);
-      else runUnaryLoop(fnName, inputs, N);
-    }
-
-    // Run for at least MIN_TIME_MS, looping over the input array.
-    // Collect per-pass timings for 3 separate measurement rounds, take median.
-    const MIN_TIME_MS = 10;
-    const ROUNDS = 3;
-    const opsPerSecSamples = [];
-
-    for (let r = 0; r < ROUNDS; r++) {
-      let totalOps = 0;
-      let dummy = 0;
-      const deadline = now() + MIN_TIME_MS;
-      const start = now();
-      if (isBinary) {
-        while (now() < deadline) {
-          dummy += runBinaryLoop(fnName, inputs.a, inputs.b, N);
-          totalOps += N;
-        }
-      } else {
-        while (now() < deadline) {
-          dummy += runUnaryLoop(fnName, inputs, N);
-          totalOps += N;
-        }
-      }
-      const elapsed = now() - start;
-      // Use dummy to prevent dead-code elimination
-      if (dummy !== dummy + 1) void 0;
-      opsPerSecSamples.push((totalOps / elapsed) * 1000);
-    }
-
-    opsPerSecSamples.sort((a, b) => a - b);
-    const opsPerSec = opsPerSecSamples[Math.floor(ROUNDS / 2)];
-    results[setName] = { opsPerSec, n: N };
+    results[setName] = { opsPerSec: measureOpsPerSec(fnName, inputs), n: N };
   }
 
   // Overall ops/sec: average across sets
@@ -423,5 +433,5 @@ async function runBenchmark(testData, onProgress) {
 
 // Export for both browser and Node
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { FUNCTIONS, runBenchmark, computeOverallScore, parseHexFloat, ulpError };
+  module.exports = { FUNCTIONS, BINARY_FUNCTIONS, PERF_RANGES, BINARY_PERF_RANGES, PERF_N, mulberry32, measureOpsPerSec, runBenchmark, computeOverallScore, parseHexFloat, ulpError };
 }
