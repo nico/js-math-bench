@@ -141,20 +141,25 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// Build the actual Math call for a function name and its test inputs.
+// hypot3/hypot4 reuse hypot's 2-arg inputs and pad with zeros in the middle.
+function callExpr(fnName, args) {
+  if (fnName === 'hypot3') return `Math.hypot(${args[0]}, 0, ${args[1]})`;
+  if (fnName === 'hypot4') return `Math.hypot(${args[0]}, 0, 0, ${args[1]})`;
+  return `Math.${fnName}(${args.join(', ')})`;
+}
+
 function formatWorstCase(fnName, a) {
+  const hexArgs = a.worstInput == null ? ['—']
+    : Array.isArray(a.worstInput) ? a.worstInput : [a.worstInput];
   // Convert hex float inputs to decimal for a working JS expression
-  let decArgs;
-  if (Array.isArray(a.worstInput)) {
-    decArgs = a.worstInput.map(h => String(parseHexFloat(h))).join(', ');
-  } else {
-    decArgs = a.worstInput ? String(parseHexFloat(a.worstInput)) : '—';
-  }
-  const hexArgs = Array.isArray(a.worstInput)
-    ? a.worstInput.join(', ') : (a.worstInput || '—');
-  const expr = `Math.${fnName}(${decArgs})`;
+  const decArgs = a.worstInput == null ? ['—']
+    : hexArgs.map(h => String(parseHexFloat(h)));
+  const expr = callExpr(fnName, decArgs);
+  const hexExpr = callExpr(fnName, hexArgs);
   const expected = esc(a.worstExpected);
   const computed = esc(a.worstComputed);
-  return `${esc(expr)} <span class="copy-btn" onclick="navigator.clipboard.writeText('${expr.replace(/'/g, "\\'")}');this.textContent='copied!';setTimeout(()=>this.textContent='copy',800)">copy</span>\nHex:      Math.${esc(fnName)}(${esc(hexArgs)})\nExpected: ${expected}\nGot:      ${computed}`;
+  return `${esc(expr)} <span class="copy-btn" onclick="navigator.clipboard.writeText('${expr.replace(/'/g, "\\'")}');this.textContent='copied!';setTimeout(()=>this.textContent='copy',800)">copy</span>\nHex:      ${esc(hexExpr)}\nExpected: ${expected}\nGot:      ${computed}`;
 }
 
 function ulpClass(ulp) {
