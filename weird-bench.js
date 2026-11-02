@@ -1,13 +1,16 @@
 // js-math-bench: "weird output" benchmark
 // Measures the performance of Math functions on inputs whose result is
-// special: +/-Infinity, NaN, zero, or a denormal. libm implementations
-// usually handle these on separate code paths (overflow/underflow handling,
-// domain checks, exception flag raising), which can be much slower -- or
-// much faster -- than the normal path.
+// special: +/-Infinity, NaN, zero, a denormal, or a saturated constant
+// (tanh(x) = 1 exactly for x >= 20, atan(x) = pi/2 for huge x, ...). libm
+// implementations usually handle these on separate code paths
+// (overflow/underflow handling, domain checks, exception flag raising, early
+// exits), which can be much slower -- or much faster -- than the normal path.
 //
 // Only functions that can produce such a result from some input are included.
 // NaN -> NaN propagation alone doesn't qualify (every function does that), and
 // neither does returning a denormal input unchanged (sin(x) = x for tiny x).
+// Saturation cases only use inputs for which the correctly rounded result is
+// exactly the constant, with a safety margin.
 //
 // Requires bench.js (shared function list, perf loop and PRNG).
 
@@ -20,6 +23,9 @@ const B = (typeof module !== 'undefined' && module.exports) ? require('./bench.j
 
 const DBL_MAX = 1.7976931348623157e+308;
 const DBL_MIN = 2.2250738585072014e-308;  // smallest normal
+const PI = Math.PI;
+const HALF_PI = Math.PI / 2;
+const QUARTER_PI = Math.PI / 4;
 
 // --- Expected-result classes ---
 
@@ -37,6 +43,12 @@ const EXPECT = {
   denormal: { name: 'denormal', check: isDenormal },
   // Sign of the result must match the sign of the (first) input.
   signedInf: { name: '+/-Inf', check: (y, x) => y === (x < 0 ? -Infinity : Infinity) },
+  // Saturation: the correctly rounded result is exactly a constant.
+  negOne:    { name: '-1',       check: y => y === -1 },
+  signedOne: { name: '+/-1',     check: (y, x) => y === (x < 0 ? -1 : 1) },
+  signedHalfPi: { name: '+/-pi/2', check: (y, x) => y === (x < 0 ? -HALF_PI : HALF_PI) },
+  signedPi:  { name: '+/-pi',    check: (y, x) => y === (x < 0 ? -PI : PI) },
+  signedQuarterPi: { name: '+/-pi/4', check: (y, x) => y === (x < 0 ? -QUARTER_PI : QUARTER_PI) },
 };
 
 // --- Input generators ---
@@ -81,7 +93,22 @@ const WEIRD_CASES = {
   ],
   expm1: [
     { label: 'x in [710, 1e4]',     expect: 'inf',      gen: uni(710, 1e4) },
+    // exp(x) < 2^-54 for x < -37.43, so expm1(x) rounds to exactly -1.
+    { label: 'x in [-1e4, -38]',    expect: 'negOne',   gen: uni(-1e4, -38) },
     { label: 'x = +Inf',            expect: 'inf',      gen: () => Infinity },
+    { label: 'x = -Inf',            expect: 'negOne',   gen: () => -Infinity },
+    { label: 'x = NaN',             expect: 'nan',      gen: NAN },
+  ],
+  tanh: [
+    // 1 - tanh(x) < 2^-54 for x > 19.06, so tanh(x) rounds to exactly +/-1.
+    { label: '|x| in [20, 1e4]',    expect: 'signedOne', gen: pm(uni(20, 1e4)) },
+    { label: 'x = +/-Inf',          expect: 'signedOne', gen: INFS },
+    { label: 'x = NaN',             expect: 'nan',      gen: NAN },
+  ],
+  atan: [
+    // pi/2 - atan(x) = 1/x < 2^-56 is well below the rounding margin of pi/2.
+    { label: '|x| in 2^[56, 1000]', expect: 'signedHalfPi', gen: pm(pow2(56, 1000)) },
+    { label: 'x = +/-Inf',          expect: 'signedHalfPi', gen: INFS },
     { label: 'x = NaN',             expect: 'nan',      gen: NAN },
   ],
   cosh: [
@@ -143,6 +170,15 @@ const WEIRD_CASES = {
     { label: 'x = +/-Inf',          expect: 'nan',      gen: INFS },
     { label: 'x = NaN',             expect: 'nan',      gen: NAN },
   ],
+  atan2: [
+    { label: '|y| in 2^[600,1000], x in [-10,10]', expect: 'signedHalfPi', gen: pair(pm(pow2(600, 1000)), NORMAL) },
+    { label: '|y| in [0.5,10], x in -2^[600,1000]', expect: 'signedPi',  gen: pair(pm(uni(0.5, 10)), pow2(600, 1000, -1)) },
+    { label: 'y in [-10,10], x = +Inf',          expect: 'zero',         gen: pair(NORMAL, () => Infinity) },
+    { label: 'y in [-10,10], x = -Inf',          expect: 'signedPi',     gen: pair(NORMAL, () => -Infinity) },
+    { label: 'y = +/-Inf, x in [-10,10]',        expect: 'signedHalfPi', gen: pair(INFS, NORMAL) },
+    { label: 'y = +/-Inf, x = +Inf',             expect: 'signedQuarterPi', gen: pair(INFS, () => Infinity) },
+    { label: 'y = NaN',                          expect: 'nan',          gen: pair(NAN, NORMAL) },
+  ],
   pow: [
     { label: 'b in [2,10], e in [1100,2000]',   expect: 'inf',      gen: pair(uni(2, 10), uni(1100, 2000)) },
     { label: 'b in [2,10], e in [-2000,-1100]', expect: 'zero',     gen: pair(uni(2, 10), uni(-2000, -1100)) },
@@ -177,8 +213,7 @@ WEIRD_CASES.asin = WEIRD_CASES.acos;
 WEIRD_CASES.cos = WEIRD_CASES.sin;
 WEIRD_CASES.tan = WEIRD_CASES.sin;
 
-// Same order as the main benchmark, minus functions with no weird outputs
-// (atan, atan2, tanh: finite results for every non-NaN input).
+// Same order as the main benchmark.
 const WEIRD_FUNCTIONS = B.FUNCTIONS.filter(f => WEIRD_CASES[f]);
 
 // --- Running ---

@@ -55,14 +55,15 @@ python3 -m http.server 8000
 ## Special-result benchmark
 
 `weird.html` / `node weird-cli.js` is a second, performance-only benchmark for
-inputs whose result is special: +/-Infinity, NaN, zero, or a denormal. libm
-implementations typically handle these on separate code paths (overflow and
-underflow handling, domain checks, exception-flag bookkeeping), so they can be
-much faster or much slower than the normal path. Each input class is timed
-against the function's normal-input baseline and reported as a ratio, and every
-output is checked to be in the expected result class. Only functions that can
-produce such a result are included; `atan`, `atan2` and `tanh` return finite
-values for every non-NaN input and are skipped.
+inputs whose result is special: +/-Infinity, NaN, zero, a denormal, or a
+saturated constant (`tanh(x)` is exactly 1 for x >= 20, `atan(x)` is exactly
+pi/2 for huge x, and so on; only inputs where the correctly rounded result is
+the constant are used). libm implementations typically handle these on
+separate code paths (overflow and underflow handling, domain checks,
+exception-flag bookkeeping, early exits), so they can be much faster or much
+slower than the normal path. Each input class is timed against the function's
+normal-input baseline and reported as a ratio, and every output is checked to
+be in the expected result class.
 
 ## Running from the command line
 
